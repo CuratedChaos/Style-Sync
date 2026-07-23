@@ -1,0 +1,482 @@
+Generate complete production-ready HTML, CSS and JavaScript code for my project called "StyleSync - AI Powered Smart Virtual Trial Room."
+
+IMPORTANT:
+Do not give pseudocode.
+Do not leave placeholder comments.
+Write complete working code.
+Every button and interaction must be functional.
+
+Use:
+• HTML5
+• CSS3
+• Vanilla JavaScript (ES6)
+• Bootstrap 5 only if required.
+
+The website is a portrait-mode Smart Mirror interface.
+
+-----------------------------------------
+1. CAMERA SECTION (MOST IMPORTANT)
+-----------------------------------------
+
+The Smart Mirror camera must be fully functional.
+
+When the user clicks the Smart Mirror or presses "Start Camera":
+
+• Request camera permission.
+• Open the device camera immediately.
+• Display the live camera feed inside the mirror.
+• Automatically resize the video.
+• Show "Camera Connected".
+
+Include:
+
+Start Camera
+
+Stop Camera
+
+Capture Image
+
+Switch Camera (front/back if supported)
+
+Fullscreen
+
+If permission is denied,
+
+Display a beautiful popup saying
+
+"Camera permission is required to use StyleSync."
+
+Do not use fake images.
+
+Use the real device camera through JavaScript.
+
+Use:
+
+navigator.mediaDevices.getUserMedia()
+
+-----------------------------------------
+2. WARDROBE
+-----------------------------------------
+
+Create a wardrobe containing exactly 15 premium shirts.
+
+Display only 6 shirts initially.
+
+When the user scrolls downward,
+
+Automatically load the remaining shirts.
+
+Each shirt card must contain:
+
+Product Image
+
+Product Name
+
+Price
+
+Rating
+
+Available Sizes
+
+Try On Button
+
+Wishlist Button
+
+Generate realistic prices randomly between
+
+₹700
+
+and
+
+₹15,000.
+
+Examples:
+
+₹799
+
+₹999
+
+₹1499
+
+₹2499
+
+₹3999
+
+₹5999
+
+₹7999
+
+₹9999
+
+₹12999
+
+₹14999
+
+-----------------------------------------
+3. SHIRT POPUP
+-----------------------------------------
+
+When any shirt is clicked,
+
+Open a beautiful popup modal.
+
+The popup must contain:
+
+Large Product Image
+
+Product Name
+
+Price
+
+Rating
+
+Fabric
+
+Colour
+
+Available Sizes
+
+Description
+
+Try On Button
+
+Add to Cart Button
+
+Close Button
+
+Animate the popup smoothly.
+
+-----------------------------------------
+4. TRY ON
+-----------------------------------------
+
+When the user clicks
+
+"Try On"
+
+Immediately display the selected shirt over the live camera feed.
+
+Use a transparent PNG overlay.
+
+Whenever another shirt is selected,
+
+Replace the old shirt with the new shirt.
+
+Animate the transition.
+
+-----------------------------------------
+5. AI BODY SCAN
+-----------------------------------------
+
+Once the camera starts,
+
+Display
+
+"Scanning..."
+
+for 3 seconds.
+
+Then automatically generate
+
+Recommended Size
+
+Randomly choose:
+
+Small
+
+Medium
+
+Large
+
+XL
+
+Also generate:
+
+Body Type
+
+Slim
+
+Athletic
+
+Regular
+
+Broad
+
+Display:
+
+Confidence Score
+
+95%
+
+Display everything inside the AI panel.
+
+-----------------------------------------
+6. AI RECOMMENDATIONS
+-----------------------------------------
+
+Directly below the camera,
+
+Create
+
+"You May Also Like"
+
+Whenever a shirt is selected,
+
+Automatically recommend:
+
+4 More Shirts
+
+1 Jeans
+
+1 Shoe
+
+1 Watch
+
+1 Belt
+
+1 Bag
+
+Each recommendation should have
+
+Image
+
+Price
+
+Quick View Button
+
+-----------------------------------------
+7. SHOPPING CART
+-----------------------------------------
+
+When
+
+Add to Cart
+
+is clicked,
+
+Update the cart automatically.
+
+Display:
+
+Product
+
+Image
+
+Quantity
+
+Price
+
+GST
+
+Discount
+
+Coupon
+
+Total
+
+Proceed to Payment
+
+-----------------------------------------
+8. PAYMENT
+-----------------------------------------
+
+Clicking
+
+Proceed to Pay
+
+should open a premium payment modal.
+
+Include:
+
+Google Pay
+
+PhonePe
+
+Paytm
+
+UPI
+
+Credit Card
+
+Debit Card
+
+Cash
+
+After clicking
+
+Pay
+
+Display
+
+✔ Payment Successful
+
+Generate:
+
+Random Order ID
+
+Invoice Number
+
+Estimated Delivery
+
+Download Invoice Button
+
+Continue Shopping
+
+-----------------------------------------
+9. WISHLIST
+-----------------------------------------
+
+Clicking the Heart icon
+
+should
+
+Save to Wishlist.
+
+Heart becomes red.
+
+Display
+
+"Added to Wishlist"
+
+using a toast notification.
+
+-----------------------------------------
+10. SEARCH
+-----------------------------------------
+
+Create a live search.
+
+Typing instantly filters shirts.
+
+Search by:
+
+Name
+
+Colour
+
+Price
+
+-----------------------------------------
+11. FILTERS
+-----------------------------------------
+
+Create filters for
+
+Price
+
+Colour
+
+Fabric
+
+Size
+
+Brand
+
+-----------------------------------------
+12. ANIMATIONS
+-----------------------------------------
+
+Add premium animations.
+
+Hover
+
+Fade
+
+Slide
+
+Scale
+
+Ripple
+
+Glass Glow
+
+Button Press
+
+Card Lift
+
+Loading Skeleton
+
+Smooth Scroll
+
+-----------------------------------------
+13. JAVASCRIPT
+-----------------------------------------
+
+Write clean modular JavaScript.
+
+Separate functions.
+
+No duplicate code.
+
+Use
+
+querySelector
+
+Event Listeners
+
+Async/Await
+
+Arrow Functions
+
+Object Arrays
+
+Local Storage
+
+DOM Manipulation
+
+-----------------------------------------
+14. RESPONSIVE
+-----------------------------------------
+
+The entire application should work on
+
+Desktop
+
+Laptop
+
+Tablet
+
+Portrait Smart Mirror
+
+Mobile
+
+-----------------------------------------
+15. CODE QUALITY
+-----------------------------------------
+
+Generate complete code.
+
+Do not omit anything.
+
+Do not leave TODO comments.
+
+Do not leave placeholder functions.
+
+Write production-quality code.
+
+Every button must work.
+
+Every popup must work.
+
+Every interaction must work.
+
+-----------------------------------------
+IMPORTANT
+
+The Smart Mirror camera must actually access the user's webcam using JavaScript.
+
+The wardrobe must contain exactly 15 shirts.
+
+The first six shirts should be visible.
+
+The remaining shirts should appear while scrolling.
+
+Clicking a shirt should open a popup with complete details.
+
+Clicking Try On should display the shirt over the live camera.
+
+Below the camera, automatically recommend other shirts and accessories.
+
+The final output should feel like a luxury AI Smart Mirror installed inside Zara, Gucci, or Louis Vuitton stores.
+
+Generate the complete HTML, CSS, and JavaScript source code without skipping any functionality.
