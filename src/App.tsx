@@ -13,6 +13,7 @@ import type { Product } from './types/product'
 import type { CartItem } from './types/cart'
 import type { Accessory } from './types/accessory'
 import type { ToastItem } from './types/toast'
+import { CameraOverlay } from "./camera/CameraOverlay";
 
 
 /* ══════════════════════════════════════════
@@ -586,6 +587,7 @@ export default function App() {
   const cartCount = cart.reduce((s, c) => s + c.qty, 0)
   const aiResult  = cam.aiResult
 
+  // return <CameraOverlay />;
   return (
     <>
       {/* Splash screen — sits above everything, dismissed on tap */}
