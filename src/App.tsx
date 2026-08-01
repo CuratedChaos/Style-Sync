@@ -9,20 +9,11 @@ import { useCamera } from './useCamera'
 import { LogoHorizontal, LogoSplash } from './components/Logo/Logo'
 import { ToastLayer } from './components/Toast/Toast'
 import { SplashScreen } from './components/Splash/SplashScreen'
+import type { Product } from './types/product'
+import type { CartItem } from './types/cart'
+import type { Accessory } from './types/accessory'
+import type { ToastItem } from './types/toast'
 
-
-/* ══════════════════════════════════════════
-   TYPES
-══════════════════════════════════════════ */
-interface Product {
-  id: number; name: string; brand: string; price: number
-  rating: number; ratingCount: number; sizes: string[]
-  colours: string[]; fabric: string; description: string
-  img: string; tag?: string; wishlisted: boolean
-}
-interface CartItem { product: Product; size: string; qty: number }
-interface Accessory { id: number; type: string; name: string; price: number; img: string }
-interface ToastItem { id: number; msg: string; icon: string }
 
 /* ══════════════════════════════════════════
    DATA — 15 Shirts
