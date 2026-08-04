@@ -587,218 +587,218 @@ export default function App() {
   const cartCount = cart.reduce((s, c) => s + c.qty, 0)
   const aiResult  = cam.aiResult
 
-  // return <CameraOverlay />;
-  return (
-    <>
-      {/* Splash screen — sits above everything, dismissed on tap */}
-      {showSplash && <SplashScreen onEnter={() => setShowSplash(false)} />}
+  return <CameraOverlay />;
+  // return (
+  //   <>
+  //     {/* Splash screen — sits above everything, dismissed on tap */}
+  //     {showSplash && <SplashScreen onEnter={() => setShowSplash(false)} />}
 
-      {/* Landscape warning */}
-      <div className="rotateWarning">
-        <i className="ri-phone-line" />
-        <h3>Rotate Your Device</h3>
-        <p>StyleSync works best in portrait mode</p>
-      </div>
+  //     {/* Landscape warning */}
+  //     <div className="rotateWarning">
+  //       <i className="ri-phone-line" />
+  //       <h3>Rotate Your Device</h3>
+  //       <p>StyleSync works best in portrait mode</p>
+  //     </div>
 
-      {/* Toasts */}
-      <ToastLayer toasts={toasts} />
+  //     {/* Toasts */}
+  //     <ToastLayer toasts={toasts} />
 
-      {/* Modals */}
-      {showModal && selectedProduct && (
-        <ShirtModal
-          product={selectedProduct}
-          onClose={() => setShowModal(false)}
-          onTryOn={handleTryOn}
-          onAddCart={addToCart}
-        />
-      )}
-      {showCart && (
-        <CartDrawer
-          items={cart}
-          onClose={() => setShowCart(false)}
-          onChange={changeQty}
-          onRemove={removeFromCart}
-          onCheckout={total => { setPayTotal(total); setShowPayment(true) }}
-        />
-      )}
-      {showPayment && (
-        <PaymentModal
-          total={payTotal}
-          onClose={() => { setShowPayment(false); setCart([]) }}
-          onSuccess={() => {}}
-        />
-      )}
+  //     {/* Modals */}
+  //     {showModal && selectedProduct && (
+  //       <ShirtModal
+  //         product={selectedProduct}
+  //         onClose={() => setShowModal(false)}
+  //         onTryOn={handleTryOn}
+  //         onAddCart={addToCart}
+  //       />
+  //     )}
+  //     {showCart && (
+  //       <CartDrawer
+  //         items={cart}
+  //         onClose={() => setShowCart(false)}
+  //         onChange={changeQty}
+  //         onRemove={removeFromCart}
+  //         onCheckout={total => { setPayTotal(total); setShowPayment(true) }}
+  //       />
+  //     )}
+  //     {showPayment && (
+  //       <PaymentModal
+  //         total={payTotal}
+  //         onClose={() => { setShowPayment(false); setCart([]) }}
+  //         onSuccess={() => {}}
+  //       />
+  //     )}
 
-      {/* ═══ KIOSK WRAPPER ═══ */}
-      <div className="kioskWrap">
+  //     {/* ═══ KIOSK WRAPPER ═══ */}
+  //     <div className="kioskWrap">
 
-        {/* ── TOP BAR ─────────────────────── */}
-        <header className="topBar">
-          <LogoHorizontal iconSize={34} />
+  //       {/* ── TOP BAR ─────────────────────── */}
+  //       <header className="topBar">
+  //         <LogoHorizontal iconSize={34} />
 
-          <div className="searchWrap">
-            <i className="ri-search-line" />
-            <input
-              className="searchInput"
-              placeholder="Search shirts, colour, price…"
-              value={search}
-              onChange={e => { setSearch(e.target.value); setVisible(6) }}
-            />
-          </div>
+  //         <div className="searchWrap">
+  //           <i className="ri-search-line" />
+  //           <input
+  //             className="searchInput"
+  //             placeholder="Search shirts, colour, price…"
+  //             value={search}
+  //             onChange={e => { setSearch(e.target.value); setVisible(6) }}
+  //           />
+  //         </div>
 
-          <div className="aiChip">
-            <i className={cam.scanState === 'scanning' ? 'ri-loader-4-line' : cam.scanState === 'done' ? 'ri-checkbox-circle-line' : 'ri-cpu-line'} />
-            <span>{cam.scanState === 'scanning' ? 'Scanning…' : cam.scanState === 'done' ? 'AI Ready' : 'AI Standby'}</span>
-          </div>
+  //         <div className="aiChip">
+  //           <i className={cam.scanState === 'scanning' ? 'ri-loader-4-line' : cam.scanState === 'done' ? 'ri-checkbox-circle-line' : 'ri-cpu-line'} />
+  //           <span>{cam.scanState === 'scanning' ? 'Scanning…' : cam.scanState === 'done' ? 'AI Ready' : 'AI Standby'}</span>
+  //         </div>
 
-          <div className="topActions">
-            <button className="iconBtn" onClick={() => setShowCart(true)}>
-              <i className="ri-shopping-bag-line" />
-              {cartCount > 0 && <span className="cartBadge">{cartCount}</span>}
-            </button>
-            <button className="iconBtn" onClick={cam.reset} title="Reset">
-              <i className="ri-refresh-line" />
-            </button>
-          </div>
-        </header>
+  //         <div className="topActions">
+  //           <button className="iconBtn" onClick={() => setShowCart(true)}>
+  //             <i className="ri-shopping-bag-line" />
+  //             {cartCount > 0 && <span className="cartBadge">{cartCount}</span>}
+  //           </button>
+  //           <button className="iconBtn" onClick={cam.reset} title="Reset">
+  //             <i className="ri-refresh-line" />
+  //           </button>
+  //         </div>
+  //       </header>
 
-        {/* ── MIDDLE ROW ──────────────────── */}
-        <div className="middleRow">
+  //       {/* ── MIDDLE ROW ──────────────────── */}
+  //       <div className="middleRow">
 
-          {/* LEFT — WARDROBE */}
-          <div className="wardrobeCol">
+  //         {/* LEFT — WARDROBE */}
+  //         <div className="wardrobeCol">
 
-            <div className="wardrobeHeader">
-              <h2>Wardrobe</h2>
-              <p>Select &amp; try on any outfit</p>
-            </div>
+  //           <div className="wardrobeHeader">
+  //             <h2>Wardrobe</h2>
+  //             <p>Select &amp; try on any outfit</p>
+  //           </div>
 
-            {/* Category tabs */}
-            <div className="categoryTabs">
-              {CATS.map(c => (
-                <button
-                  key={c}
-                  className={`category${activeCat===c?' active':''}`}
-                  onClick={() => { setActiveCat(c); setVisible(6) }}
-                >{c}</button>
-              ))}
-            </div>
+  //           {/* Category tabs */}
+  //           <div className="categoryTabs">
+  //             {CATS.map(c => (
+  //               <button
+  //                 key={c}
+  //                 className={`category${activeCat===c?' active':''}`}
+  //                 onClick={() => { setActiveCat(c); setVisible(6) }}
+  //               >{c}</button>
+  //             ))}
+  //           </div>
 
-            {/* Filter chips */}
-            <div className="filterBar">
-              {FILTERS.map(f => (
-                <button
-                  key={f}
-                  className={`filterChip${sortFilter===f?' on':''}`}
-                  onClick={() => setSortFilter(prev => prev===f ? '' : f)}
-                >
-                  <i className="ri-filter-line" />{f}
-                </button>
-              ))}
-            </div>
+  //           {/* Filter chips */}
+  //           <div className="filterBar">
+  //             {FILTERS.map(f => (
+  //               <button
+  //                 key={f}
+  //                 className={`filterChip${sortFilter===f?' on':''}`}
+  //                 onClick={() => setSortFilter(prev => prev===f ? '' : f)}
+  //               >
+  //                 <i className="ri-filter-line" />{f}
+  //               </button>
+  //             ))}
+  //           </div>
 
-            {/* Product grid */}
-            <div className="productGrid" ref={gridRef}>
-              {displayList.map(p => (
-                <div
-                  key={p.id}
-                  className={`productCard${activeProduct?.id===p.id?' active':''}`}
-                  onClick={() => openModal(p)}
-                >
-                  {p.tag && <span className="tag">{p.tag}</span>}
-                  <button
-                    className={`heartBtn${p.wishlisted?' on':''}`}
-                    onClick={e => { e.stopPropagation(); toggleWishlist(p.id) }}
-                  >
-                    <i className={p.wishlisted ? 'ri-heart-fill' : 'ri-heart-line'} />
-                  </button>
-                  <div className="productThumb">
-                    <img src={p.img} alt={p.name} loading="lazy" />
-                  </div>
-                  <div className="productInfo">
-                    <h4>{p.name}</h4>
-                    <div className="brand">{p.brand}</div>
-                    <Stars r={p.rating} />
-                    <span className="price">{fmtP(p.price)}</span>
-                  </div>
-                  <button
-                    className={`tryOnBtn${activeProduct?.id===p.id?' active':''}`}
-                    onClick={e => { e.stopPropagation(); handleTryOn(p) }}
-                  >
-                    {activeProduct?.id===p.id ? '✓ Wearing' : 'Try On'}
-                  </button>
-                </div>
-              ))}
+  //           {/* Product grid */}
+  //           <div className="productGrid" ref={gridRef}>
+  //             {displayList.map(p => (
+  //               <div
+  //                 key={p.id}
+  //                 className={`productCard${activeProduct?.id===p.id?' active':''}`}
+  //                 onClick={() => openModal(p)}
+  //               >
+  //                 {p.tag && <span className="tag">{p.tag}</span>}
+  //                 <button
+  //                   className={`heartBtn${p.wishlisted?' on':''}`}
+  //                   onClick={e => { e.stopPropagation(); toggleWishlist(p.id) }}
+  //                 >
+  //                   <i className={p.wishlisted ? 'ri-heart-fill' : 'ri-heart-line'} />
+  //                 </button>
+  //                 <div className="productThumb">
+  //                   <img src={p.img} alt={p.name} loading="lazy" />
+  //                 </div>
+  //                 <div className="productInfo">
+  //                   <h4>{p.name}</h4>
+  //                   <div className="brand">{p.brand}</div>
+  //                   <Stars r={p.rating} />
+  //                   <span className="price">{fmtP(p.price)}</span>
+  //                 </div>
+  //                 <button
+  //                   className={`tryOnBtn${activeProduct?.id===p.id?' active':''}`}
+  //                   onClick={e => { e.stopPropagation(); handleTryOn(p) }}
+  //                 >
+  //                   {activeProduct?.id===p.id ? '✓ Wearing' : 'Try On'}
+  //                 </button>
+  //               </div>
+  //             ))}
 
-              {/* Loading skeleton for remaining items */}
-              {visible < filtered.length && [1,2].map(k => (
-                <div key={k} className="skeletonCard">
-                  <div className="skelThumb" />
-                  <div className="skelLine w80" />
-                  <div className="skelLine w60" />
-                  <div className="skelLine w60" />
-                </div>
-              ))}
-            </div>
+  //             {/* Loading skeleton for remaining items */}
+  //             {visible < filtered.length && [1,2].map(k => (
+  //               <div key={k} className="skeletonCard">
+  //                 <div className="skelThumb" />
+  //                 <div className="skelLine w80" />
+  //                 <div className="skelLine w60" />
+  //                 <div className="skelLine w60" />
+  //               </div>
+  //             ))}
+  //           </div>
 
-          </div>
+  //         </div>
 
-          {/* RIGHT — SMART MIRROR */}
-          <SmartMirror cam={cam} />
+  //         {/* RIGHT — SMART MIRROR */}
+  //         <SmartMirror cam={cam} />
 
-        </div>
+  //       </div>
 
-        {/* ── BOTTOM PANEL ────────────────── */}
-        <div className="bottomPanel">
+  //       {/* ── BOTTOM PANEL ────────────────── */}
+  //       <div className="bottomPanel">
 
-          {/* AI Strip */}
-          <div className="aiStrip">
-            <div className="aiStripLeft">
-              <div className="aiLabel"><i className="ri-sparkling-line" />AI Stylist</div>
-              <p className="aiRec">
-                {aiResult
-                  ? aiResult.tip
-                  : 'Select an outfit and start the camera to get AI styling recommendations.'}
-              </p>
-            </div>
-            <div className="aiMetrics">
-              <div className="metricPill">
-                <span className="metricVal">{aiResult?.size ?? '—'}</span>
-                <span className="metricKey">Size</span>
-              </div>
-              <div className="metricPill">
-                <span className="metricVal">{aiResult?.bodyType ?? '—'}</span>
-                <span className="metricKey">Body</span>
-              </div>
-              <div className="metricPill">
-                <span className="metricVal">{aiResult ? `${aiResult.confidence}%` : '—'}</span>
-                <span className="metricKey">Conf.</span>
-              </div>
-              <div className="metricPill">
-                <span className="metricVal">{aiResult?.weather ?? '—'}</span>
-                <span className="metricKey">Weather</span>
-              </div>
-            </div>
-          </div>
+  //         {/* AI Strip */}
+  //         <div className="aiStrip">
+  //           <div className="aiStripLeft">
+  //             <div className="aiLabel"><i className="ri-sparkling-line" />AI Stylist</div>
+  //             <p className="aiRec">
+  //               {aiResult
+  //                 ? aiResult.tip
+  //                 : 'Select an outfit and start the camera to get AI styling recommendations.'}
+  //             </p>
+  //           </div>
+  //           <div className="aiMetrics">
+  //             <div className="metricPill">
+  //               <span className="metricVal">{aiResult?.size ?? '—'}</span>
+  //               <span className="metricKey">Size</span>
+  //             </div>
+  //             <div className="metricPill">
+  //               <span className="metricVal">{aiResult?.bodyType ?? '—'}</span>
+  //               <span className="metricKey">Body</span>
+  //             </div>
+  //             <div className="metricPill">
+  //               <span className="metricVal">{aiResult ? `${aiResult.confidence}%` : '—'}</span>
+  //               <span className="metricKey">Conf.</span>
+  //             </div>
+  //             <div className="metricPill">
+  //               <span className="metricVal">{aiResult?.weather ?? '—'}</span>
+  //               <span className="metricKey">Weather</span>
+  //             </div>
+  //           </div>
+  //         </div>
 
-          {/* You May Also Like */}
-          <div className="recSection">
-            <div className="recTitle">✦ You May Also Like</div>
-            <div className="recStrip">
-              {ACCESSORIES.map(a => (
-                <div key={a.id} className="recCard" onClick={() => addToast(`${a.name} added to cart`, 'ri-shopping-bag-fill')}>
-                  <div className="recThumb"><img src={a.img} alt={a.name} loading="lazy" /></div>
-                  <div className="recType">{a.type}</div>
-                  <div className="recName">{a.name}</div>
-                  <div className="recPrice">{fmtP(a.price)}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+  //         {/* You May Also Like */}
+  //         <div className="recSection">
+  //           <div className="recTitle">✦ You May Also Like</div>
+  //           <div className="recStrip">
+  //             {ACCESSORIES.map(a => (
+  //               <div key={a.id} className="recCard" onClick={() => addToast(`${a.name} added to cart`, 'ri-shopping-bag-fill')}>
+  //                 <div className="recThumb"><img src={a.img} alt={a.name} loading="lazy" /></div>
+  //                 <div className="recType">{a.type}</div>
+  //                 <div className="recName">{a.name}</div>
+  //                 <div className="recPrice">{fmtP(a.price)}</div>
+  //               </div>
+  //             ))}
+  //           </div>
+  //         </div>
 
-        </div>
+  //       </div>
 
-      </div>
-    </>
-  )
+  //     </div>
+  //   </>
+  // )
 }

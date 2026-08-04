@@ -18,7 +18,7 @@ export function CameraOverlay() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const landmarks = usePose(videoRef.current);
+  const landmarks = usePose(videoRef);
 
   useEffect(() => {
     startCamera();
@@ -34,13 +34,14 @@ export function CameraOverlay() {
     const body = calculateMeasurements(landmarks);
     const size = estimateSize(body);
 
-    console.clear();
+    //console.clear();
 
     console.table({
-      Shoulder: body.shoulderWidth.toFixed(3),
-      Hip: body.hipWidth.toFixed(3),
-      Torso: body.torsoLength.toFixed(3),
-      Size: size,
+      0: landmarks[0],
+      11: landmarks[11],
+      12: landmarks[12],
+      23: landmarks[23],
+      24: landmarks[24],
     });
 
     const canvas = canvasRef.current;
@@ -55,17 +56,27 @@ export function CameraOverlay() {
 
     ctx.fillStyle = "#00ff66";
 
+    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+    ctx.fillStyle = "#00ff66";
+
+    console.table({
+      videoWidth: videoRef.current?.videoWidth,
+      videoHeight: videoRef.current?.videoHeight,
+      clientWidth: videoRef.current?.clientWidth,
+      clientHeight: videoRef.current?.clientHeight,
+      landmark: landmarks[11],
+    });
+
     landmarks.forEach((lm) => {
       ctx.beginPath();
-
       ctx.arc(
-        (1 - lm.x) * WIDTH,
+        lm.x * WIDTH,
         lm.y * HEIGHT,
         5,
         0,
         Math.PI * 2
       );
-
       ctx.fill();
     });
   }, [landmarks]);
@@ -90,7 +101,8 @@ export function CameraOverlay() {
           style={{
             width: WIDTH,
             height: HEIGHT,
-            objectFit: "cover",
+            objectFit: "contain",
+            background: "#000",
             display: "block",
           }}
         />
@@ -121,4 +133,4 @@ export function CameraOverlay() {
       )}
     </>
   );
-}
+} 

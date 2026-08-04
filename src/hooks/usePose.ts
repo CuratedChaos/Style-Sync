@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
 import { PoseDetector } from "../ai/pose/PoseDetector";
 
-export function usePose(video: HTMLVideoElement | null) {
+export function usePose(videoRef: RefObject<HTMLVideoElement | null>) {
   const detectorRef = useRef<PoseDetector | null>(null);
   const animationRef = useRef<number | null>(null);
 
   const [landmarks, setLandmarks] = useState<any[]>([]);
 
   useEffect(() => {
+    const video = videoRef.current;
+
     if (!video) return;
 
     let mounted = true;
@@ -19,16 +22,27 @@ export function usePose(video: HTMLVideoElement | null) {
       const detector = detectorRef.current.getDetector();
 
       const detect = () => {
-        if (!mounted || !video || !detector) return;
+        if (!mounted) return;
 
-        if (video.readyState >= 2) {
+        const currentVideo = videoRef.current;
+
+        if (
+          currentVideo &&
+          detector &&
+          currentVideo.readyState === 4 &&
+          currentVideo.videoWidth > 0 &&
+          currentVideo.videoHeight > 0
+        ) {
           const result = detector.detectForVideo(
-            video,
+            currentVideo,
             performance.now()
           );
 
-          if (result.landmarks && result.landmarks.length > 0) {
+          if (result.landmarks.length > 0) {
+            console.dir(result);
+
             setLandmarks(result.landmarks[0]);
+            console.log("Landmarks:", result.landmarks[0].length);
           }
         }
 
@@ -43,11 +57,11 @@ export function usePose(video: HTMLVideoElement | null) {
     return () => {
       mounted = false;
 
-      if (animationRef.current !== null) {
+      if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [video]);
+  }, [videoRef]);
 
   return landmarks;
 }
