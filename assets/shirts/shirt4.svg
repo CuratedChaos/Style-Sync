@@ -1,4 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="420" height="500" viewBox="0 0 420 500">
-  <defs><linearGradient id="fabric" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#718b70"/><stop offset="1" stop-color="#b9c8ad"/></linearGradient><linearGradient id="shine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".20"/><stop offset=".48" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".16"/></linearGradient></defs>
-  <g stroke="#b9c8ad" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="url(#fabric)"><path d="M150 66 L184 43 Q210 58 236 43 L270 66 L340 105 L312 178 L270 155 L281 442 Q210 462 139 442 L150 155 L108 178 L80 105 Z"/><path d="M184 43 Q210 82 236 43 L226 99 L210 113 L194 99 Z" fill="#607e61"/><path d="M210 112 L210 166" fill="none"/><path d="M198 114 L210 130 L222 114" fill="none"/><path d="M210 130 L210 167" fill="none"/><path d="M150 155 L139 442 M270 155 L281 442" fill="none"/><circle cx="217" cy="145" r="2.8"/><circle cx="217" cy="162" r="2.8"/><path d="M80 100 Q210 66 340 100 L312 445 Q210 478 108 445Z" fill="url(#shine)" stroke="none"/></g>
+<defs>
+ <linearGradient id="pique" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6f8a6e"/><stop offset=".52" stop-color="#91a88b"/><stop offset="1" stop-color="#bfceb4"/></linearGradient>
+ <pattern id="knit" width="8" height="8" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#e3eadc" opacity=".55"/><circle cx="6" cy="6" r="1" fill="#425e46" opacity=".22"/></pattern>
+</defs>
+<path d="M150 68 184 44Q210 59 236 44L270 68 340 106 312 180 270 156 281 442Q210 462 139 442L150 156 108 180 80 106Z" fill="url(#pique)" stroke="#617c62" stroke-width="3" stroke-linejoin="round"/>
+<path d="M150 68 184 44Q210 59 236 44L270 68 340 106 312 180 270 156 281 442Q210 462 139 442L150 156 108 180 80 106Z" fill="url(#knit)"/>
+<path d="M184 44Q210 81 236 44L226 94 210 110 194 94Z" fill="#557354" stroke="#c2d0b9" stroke-width="2"/>
+<path d="M184 44 194 94 210 110 226 94 236 44" fill="none" stroke="#d4dfcb" stroke-width="1.5"/>
+<path d="M210 109V177" stroke="#dce5d4" stroke-width="2"/><path d="M214 118V169" stroke="#466848" stroke-width="1"/>
+<g fill="#d8e0cf" stroke="#557354" stroke-width="1"><circle cx="218" cy="145" r="3.4"/><circle cx="218" cy="165" r="3.4"/></g>
+<path d="M80 106Q210 130 340 106" fill="none" stroke="#ccd9c3" stroke-width="2"/>
+<path d="M150 156 139 442M270 156 281 442" fill="none" stroke="#c6d4bc" stroke-width="2"/>
+<path d="M113 163 143 176M307 163 277 176" stroke="#526f53" stroke-width="1.8" opacity=".6"/>
+<path d="M80 100Q210 66 340 100L312 445Q210 478 108 445Z" fill="#fff" opacity=".08"/>
+<path d="M137 442Q210 460 283 442" fill="none" stroke="#d1ddc8" stroke-width="3"/>
 </svg>

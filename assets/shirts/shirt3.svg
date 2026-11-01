@@ -1,4 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="420" height="500" viewBox="0 0 420 500">
-  <defs><linearGradient id="fabric" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#52799d"/><stop offset="1" stop-color="#9db5c8"/></linearGradient><linearGradient id="shine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".20"/><stop offset=".48" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".16"/></linearGradient></defs>
-  <g stroke="#9db5c8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="url(#fabric)"><path d="M145 52 L181 31 Q210 50 239 31 L275 52 L350 105 L315 184 L276 159 L286 448 Q210 468 134 448 L144 159 L105 184 L70 105 Z"/><path d="M181 31 Q210 73 239 31 L226 87 L210 106 L194 87 Z" fill="#426d91"/><path d="M210 106 L210 443" fill="none"/><path d="M153 206 L267 206 M153 296 L267 296" fill="none"/><path d="M151 169 L196 169 L196 222 L151 222 Z M224 169 L269 169 L269 222 L224 222 Z" fill="none" stroke="#b4c6d3" stroke-width="3"/><path d="M145 159 L134 448 M276 159 L286 448" fill="none"/><circle cx="218" cy="145" r="3"/><circle cx="218" cy="185" r="3"/><circle cx="218" cy="225" r="3"/><circle cx="218" cy="265" r="3"/><circle cx="218" cy="305" r="3"/><path d="M80 100 Q210 66 340 100 L312 445 Q210 478 108 445Z" fill="url(#shine)" stroke="none"/></g>
+<defs>
+ <linearGradient id="denim" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#416b91"/><stop offset=".52" stop-color="#6689a9"/><stop offset="1" stop-color="#9eb5c8"/></linearGradient>
+ <linearGradient id="fade" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#fff" stop-opacity=".2"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#294e70" stop-opacity=".18"/></linearGradient>
+ <pattern id="denimweave" width="9" height="9" patternUnits="userSpaceOnUse"><path d="M0 0 9 9M-4 4 4 12M5 -3 13 5" stroke="#d8e3e8" stroke-width=".7" opacity=".2"/><path d="M0 4H9" stroke="#294d6d" stroke-width=".55" opacity=".18"/></pattern>
+</defs>
+<path d="M145 55 181 32Q210 51 239 32L275 55 350 107 315 188 276 161 286 447Q210 468 134 447L144 161 105 188 70 107Z" fill="url(#denim)" stroke="#385f80" stroke-width="3" stroke-linejoin="round"/>
+<path d="M145 55 181 32Q210 51 239 32L275 55 350 107 315 188 276 161 286 447Q210 468 134 447L144 161 105 188 70 107Z" fill="url(#denimweave)"/>
+<path d="M145 55 105 188M275 55 315 188" fill="none" stroke="#c7d5df" stroke-width="2.2"/>
+<path d="M145 55Q210 91 275 55" fill="none" stroke="#c5d3dd" stroke-width="2"/>
+<path d="M145 78Q210 111 275 78" fill="none" stroke="#3a6385" stroke-width="2" opacity=".7"/>
+<path d="M181 32Q210 73 239 32L226 85 210 106 194 85Z" fill="#547b9b" stroke="#b5c6d3" stroke-width="2"/>
+<path d="M181 32 194 85 210 106 226 85 239 32" fill="none" stroke="#d1dce4" stroke-width="1.5"/>
+<path d="M210 106V440" stroke="#d6e0e7" stroke-width="1.6"/><path d="M215 112V436" stroke="#325879" stroke-width="1" opacity=".6"/>
+<path d="M150 171H197V231H150Z M223 171H270V231H223Z" fill="#52799b" stroke="#d7e1e8" stroke-width="2"/><path d="M150 171 173 184 197 171M223 171 246 184 270 171" fill="none" stroke="#d7e1e8" stroke-width="2"/>
+<path d="M155 182V225M192 182V225M228 182V225M265 182V225" stroke="#294f70" stroke-width="1" stroke-dasharray="2 4" opacity=".7"/>
+<g fill="#d5dfe5" stroke="#3c6688" stroke-width="1"><circle cx="218" cy="145" r="3.6"/><circle cx="218" cy="185" r="3.6"/><circle cx="218" cy="225" r="3.6"/><circle cx="218" cy="265" r="3.6"/><circle cx="218" cy="305" r="3.6"/><circle cx="218" cy="345" r="3.6"/></g>
+<path d="M80 100Q210 66 340 100L312 445Q210 478 108 445Z" fill="url(#fade)"/>
+<path d="M145 161 134 447M276 161 286 447" fill="none" stroke="#d2dee7" stroke-width="1.8" opacity=".85"/>
+<path d="M150 171H197V231H150ZM223 171H270V231H223Z" fill="none" stroke="#f0d5a7" stroke-width=".9" stroke-dasharray="3 4"/>
+<path d="M137 447Q210 464 283 447" fill="none" stroke="#d4dfe7" stroke-width="2"/>
 </svg>

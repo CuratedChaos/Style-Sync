@@ -1,4 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="420" height="500" viewBox="0 0 420 500">
-  <defs><linearGradient id="fabric" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#292725"/><stop offset="1" stop-color="#625c55"/></linearGradient><linearGradient id="shine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".20"/><stop offset=".48" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".16"/></linearGradient></defs>
-  <g stroke="#625c55" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="url(#fabric)"><path d="M145 52 L181 31 Q210 50 239 31 L275 52 L350 105 L315 184 L276 159 L286 448 Q210 468 134 448 L144 159 L105 184 L70 105 Z"/><path d="M181 31 Q210 73 239 31 L226 87 L210 106 L194 87 Z" fill="#38332e"/><path d="M210 106 L210 443" fill="none"/><path d="M153 206 L267 206 M153 296 L267 296" fill="none"/><path d="M276 159 L286 448 M145 159 L134 448" fill="none"/><path d="M230 172 L262 172 L262 212 L230 212 Z" fill="none" stroke="#8a8176" stroke-width="2"/><circle cx="218" cy="145" r="3"/><circle cx="218" cy="185" r="3"/><circle cx="218" cy="225" r="3"/><circle cx="218" cy="265" r="3"/><circle cx="218" cy="305" r="3"/><path d="M80 100 Q210 66 340 100 L312 445 Q210 478 108 445Z" fill="url(#shine)" stroke="none"/></g>
+<defs>
+ <linearGradient id="cloth" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#242321"/><stop offset=".5" stop-color="#393631"/><stop offset="1" stop-color="#676158"/></linearGradient>
+ <linearGradient id="shine" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#fff" stop-opacity=".12"/><stop offset=".48" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".2"/></linearGradient>
+ <pattern id="twill" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M-2 10 10 -2M3 13 13 3" stroke="#b3aaa0" stroke-width="1" opacity=".16"/></pattern>
+</defs>
+<path d="M145 54 181 31Q210 49 239 31L275 54 350 105 315 184 276 158 286 448Q210 468 134 448L144 158 105 184 70 105Z" fill="url(#cloth)" stroke="#625c54" stroke-width="3" stroke-linejoin="round"/>
+<path d="M145 54 181 31Q210 49 239 31L275 54 350 105 315 184 276 158 286 448Q210 468 134 448L144 158 105 184 70 105Z" fill="url(#twill)"/>
+<path d="M181 31Q210 71 239 31L226 83 210 105 194 83Z" fill="#302d29" stroke="#777067" stroke-width="2"/>
+<path d="M181 31 194 83 210 105 226 83 239 31" fill="none" stroke="#81796f" stroke-width="1.7"/>
+<path d="M210 105V441M215 111V434" stroke="#8e867c" stroke-width="1.5" opacity=".72"/>
+<g fill="#524c44" stroke="#9e9488" stroke-width="1"><circle cx="218" cy="145" r="3.6"/><circle cx="218" cy="185" r="3.6"/><circle cx="218" cy="225" r="3.6"/><circle cx="218" cy="265" r="3.6"/><circle cx="218" cy="305" r="3.6"/><circle cx="218" cy="345" r="3.6"/></g>
+<path d="M235 177H269V230H235Z" fill="#34312d" stroke="#827a70" stroke-width="1.8"/><path d="M235 177 252 185 269 177" fill="none" stroke="#92887d" stroke-width="1.4"/><circle cx="260" cy="192" r="2.2" fill="#b2a99e"/>
+<path d="M80 100Q210 66 340 100L312 445Q210 478 108 445Z" fill="url(#shine)"/>
+<path d="M145 159 134 447M276 159 286 447" fill="none" stroke="#928a80" stroke-width="1.6" opacity=".8"/>
+<path d="M149 163 139 439M272 163 281 439" fill="none" stroke="#b4aca2" stroke-width="1" stroke-dasharray="3 5" opacity=".55"/>
+<path d="M75 109 104 178M345 109 316 178" stroke="#9b9288" stroke-width="1.5" opacity=".55"/>
+<path d="M137 447Q210 464 283 447" fill="none" stroke="#81796f" stroke-width="2"/>
 </svg>

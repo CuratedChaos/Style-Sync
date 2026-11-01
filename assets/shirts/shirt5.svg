@@ -1,4 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="420" height="500" viewBox="0 0 420 500">
-  <defs><linearGradient id="fabric" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b5a1c8"/><stop offset="1" stop-color="#d9cde4"/></linearGradient><linearGradient id="shine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".20"/><stop offset=".48" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".16"/></linearGradient></defs>
-  <g stroke="#d9cde4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="url(#fabric)"><path d="M128 63 L178 35 Q210 54 242 35 L292 63 L370 124 L329 207 L283 176 L293 450 Q210 474 127 450 L137 176 L91 207 L50 124 Z"/><path d="M178 35 Q210 73 242 35 L226 82 L210 98 L194 82 Z" fill="#a48dbb"/><path d="M210 99 L210 448" fill="none" opacity=".32"/><path d="M127 450 Q210 466 293 450" fill="none"/><path d="M91 207 L50 124 M329 207 L370 124" fill="none"/><path d="M80 100 Q210 66 340 100 L312 445 Q210 478 108 445Z" fill="url(#shine)" stroke="none"/></g>
+<defs>
+ <linearGradient id="jersey" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#b09ac6"/><stop offset=".55" stop-color="#c7b6d8"/><stop offset="1" stop-color="#e4d9ec"/></linearGradient>
+ <pattern id="grain" width="7" height="7" patternUnits="userSpaceOnUse"><path d="M1 0V7M4 0V7" stroke="#725e87" stroke-width=".55" opacity=".16"/><path d="M0 3H7" stroke="#fff" stroke-width=".55" opacity=".45"/></pattern>
+</defs>
+<path d="M128 64 178 35Q210 55 242 35L292 64 370 124 329 207 283 176 293 450Q210 475 127 450L137 176 91 207 50 124Z" fill="url(#jersey)" stroke="#a38eb8" stroke-width="3" stroke-linejoin="round"/>
+<path d="M128 64 178 35Q210 55 242 35L292 64 370 124 329 207 283 176 293 450Q210 475 127 450L137 176 91 207 50 124Z" fill="url(#grain)"/>
+<path d="M178 35Q210 74 242 35L226 80Q210 97 194 80Z" fill="#a58dbb" stroke="#eee4f3" stroke-width="2"/>
+<path d="M178 35Q210 65 242 35" fill="none" stroke="#e9e0f0" stroke-width="4"/>
+<path d="M194 81Q210 94 226 81" fill="none" stroke="#8f79a5" stroke-width="2"/>
+<path d="M80 100 50 124 91 207 137 176M340 100 370 124 329 207 283 176" fill="none" stroke="#eee4f3" stroke-width="1.8" opacity=".8"/>
+<path d="M137 176 127 450M283 176 293 450" fill="none" stroke="#967fae" stroke-width="1.5" opacity=".6"/>
+<path d="M134 445Q210 466 286 445" fill="none" stroke="#8f79a5" stroke-width="2"/><path d="M137 450Q210 470 293 450" fill="none" stroke="#f2eafa" stroke-width="2"/>
+<path d="M55 128Q70 165 94 202M365 128Q350 165 326 202" stroke="#f4eafa" stroke-width="2" fill="none" opacity=".65"/>
+<path d="M80 100Q210 66 340 100L312 445Q210 478 108 445Z" fill="#fff" opacity=".09"/>
 </svg>

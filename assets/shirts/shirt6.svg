@@ -1,4 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="420" height="500" viewBox="0 0 420 500">
-  <defs><linearGradient id="fabric" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#92949a"/><stop offset="1" stop-color="#c5c5c6"/></linearGradient><linearGradient id="shine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".20"/><stop offset=".48" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff" stop-opacity=".16"/></linearGradient></defs>
-  <g stroke="#c5c5c6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="url(#fabric)"><path d="M145 94 L178 70 Q210 91 242 70 L275 94 L350 137 L313 212 L273 190 L285 448 Q210 467 135 448 L147 190 L107 212 L70 137 Z"/><path d="M178 70 Q150 18 210 18 Q270 18 242 70 Q228 94 210 110 Q192 94 178 70Z" fill="#85878e"/><path d="M191 55 Q210 91 229 55" fill="none"/><path d="M199 104 L193 160 M221 104 L227 160" fill="none"/><path d="M160 310 Q210 291 260 310 L251 367 Q210 383 169 367Z" fill="#a6a7ab"/><path d="M145 190 L135 448 M273 190 L285 448" fill="none"/><path d="M80 100 Q210 66 340 100 L312 445 Q210 478 108 445Z" fill="url(#shine)" stroke="none"/></g>
+<defs>
+ <linearGradient id="fleece" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#85888f"/><stop offset=".52" stop-color="#a7a9ae"/><stop offset="1" stop-color="#d0d0d1"/></linearGradient>
+ <linearGradient id="hood" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#777a82"/><stop offset="1" stop-color="#aeb0b5"/></linearGradient>
+ <pattern id="heather" width="9" height="9" patternUnits="userSpaceOnUse"><path d="M0 2 4 0M4 9 9 5M-2 7 2 3" stroke="#5d6068" stroke-width=".7" opacity=".18"/><path d="M2 0 7 5M7 0 9 2" stroke="#fff" stroke-width=".7" opacity=".36"/></pattern>
+</defs>
+<path d="M145 94 178 70Q210 91 242 70L275 94 350 137 321 279 278 265 285 448Q210 468 135 448L142 265 99 279 70 137Z" fill="url(#fleece)" stroke="#777a82" stroke-width="3" stroke-linejoin="round"/>
+<path d="M145 94 178 70Q210 91 242 70L275 94 350 137 321 279 278 265 285 448Q210 468 135 448L142 265 99 279 70 137Z" fill="url(#heather)"/>
+<path d="M178 70Q148 19 210 17Q272 19 242 70Q231 93 210 110Q189 93 178 70Z" fill="url(#hood)" stroke="#6d7078" stroke-width="3"/>
+<path d="M185 58Q210 88 235 58Q231 87 210 104Q189 87 185 58Z" fill="#858890" stroke="#c8c9cc" stroke-width="1.7"/>
+<path d="M193 83Q184 123 190 163M227 83Q236 123 230 163" fill="none" stroke="#666a72" stroke-width="3"/>
+<path d="M190 147 190 164M230 147 230 164" stroke="#d8d8da" stroke-width="4" stroke-linecap="round"/><path d="M190 164 188 180M230 164 232 180" stroke="#777a82" stroke-width="1.5"/>
+<path d="M154 308Q210 290 266 308L255 372Q210 390 165 372Z" fill="#91949b" stroke="#72757d" stroke-width="2.5"/><path d="M154 308Q210 327 266 308" fill="none" stroke="#d4d4d7" stroke-width="2"/><path d="M164 319Q210 338 256 319" fill="none" stroke="#777a82" stroke-width="1.5" stroke-dasharray="3 4"/>
+<path d="M142 265 135 448M278 265 285 448" fill="none" stroke="#d6d6d8" stroke-width="2"/>
+<path d="M99 279 70 137M321 279 350 137" fill="none" stroke="#d0d0d3" stroke-width="2"/>
+<path d="M135 448Q210 467 285 448" fill="none" stroke="#777a82" stroke-width="2"/><path d="M136 439Q210 457 284 439" fill="none" stroke="#d1d2d4" stroke-width="6" opacity=".85"/>
+<path d="M91 258Q99 269 112 265L115 287M329 258Q321 269 308 265L305 287" fill="none" stroke="#d7d7d9" stroke-width="6" opacity=".9"/>
 </svg>

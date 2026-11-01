@@ -20,6 +20,7 @@
     <nav class="main-nav" aria-label="Main navigation">
       <a class="nav-link is-active" href="#home">Home</a>
       <a class="nav-link" href="#products">Wardrobe</a>
+      <a class="nav-link" href="#product-details">Details</a>
       <a class="nav-link" href="#how-it-works">How it works</a>
       <a class="nav-link" href="#about">About</a>
     </nav>
@@ -106,6 +107,7 @@
 
           <div class="stage-topline">
             <span class="camera-state" id="cameraState"><i class="state-dot"></i><span id="cameraStateText">CAMERA OFF</span></span>
+            <span class="pose-status" id="poseStatus" data-state="idle">AI STANDBY</span>
             <span class="preview-state" id="previewState">GARMENT PREVIEW</span>
           </div>
 
@@ -127,7 +129,9 @@
           </div>
 
           <div class="body-guide" aria-hidden="true"></div>
+          <canvas id="poseCanvas" class="pose-canvas" aria-hidden="true"></canvas>
           <img id="shirtOverlay" src="assets/shirts/shirt1.svg" alt="White Oxford garment preview" draggable="false">
+          <canvas id="garmentCanvas" class="garment-canvas" aria-hidden="true"></canvas>
 
           <div class="stage-caption" id="stageCaption">
             <span class="caption-swatch" id="captionSwatch"></span>
@@ -159,8 +163,53 @@
             <span>Mirror view</span>
           </button>
         </div>
-        <p class="demo-disclaimer">Preview mode: the garment can be positioned manually. Live body tracking and automatic size detection are not connected in this demo.</p>
+        <p class="demo-disclaimer">AI-assisted preview: pose landmarks anchor the garment to your shoulder line. This prototype does not measure exact body dimensions or guarantee real-world garment fit.</p>
       </section>
+    </section>
+
+    <section class="product-details-section" id="product-details" aria-labelledby="productDetailsTitle">
+      <div class="details-heading-row">
+        <div>
+          <p class="section-kicker">04 / THE MATERIAL STORY</p>
+          <h2 id="productDetailsTitle">A closer look at <em>the details.</em></h2>
+        </div>
+        <p>Explore the texture, construction and fit notes behind every piece.</p>
+      </div>
+
+      <article class="product-detail-card" aria-live="polite">
+        <div class="detail-art-stage">
+          <div class="detail-art-glow" aria-hidden="true"></div>
+          <div class="detail-art-topline"><span id="detailIndex">01 / 06</span><span>STYLESYNC EDIT</span></div>
+          <img id="detailProductImage" src="assets/shirts/shirt1.svg" alt="Detailed illustration of the White Oxford shirt">
+          <div class="detail-art-footer"><span class="detail-color-dot" id="detailColorDot"></span><span id="detailColorName">Soft ivory</span><span class="detail-art-divider"></span><strong id="detailMaterialBadge">OXFORD TEXTURE</strong></div>
+        </div>
+
+        <div class="detail-main">
+          <div class="detail-title-row"><div><p class="detail-eyebrow" id="detailCategory">SHIRTS / EVERYDAY ESSENTIAL</p><h3 id="detailProductName">White Oxford</h3></div><strong id="detailProductPrice">₹1,999</strong></div>
+          <p class="detail-description" id="detailDescription">A crisp, timeless button-down with a softly textured surface and an easy regular silhouette.</p>
+          <div class="detail-feature-list" id="detailFeatures"></div>
+          <div class="detail-specs" id="detailSpecs"></div>
+          <p class="detail-disclaimer">Fabric descriptions and garment specifications are illustrative prototype content, not verified supplier or inventory data.</p>
+        </div>
+
+        <aside class="detail-side" aria-label="Fit and care information">
+          <div class="detail-size-block">
+            <div class="detail-side-heading"><span>PREVIEW SIZE</span><span id="selectedSizeLabel">SIZE M</span></div>
+            <div class="size-options" id="sizeOptions" role="group" aria-label="Choose a preview size">
+              <button type="button" data-size="XS" aria-pressed="false">XS</button>
+              <button type="button" data-size="S" aria-pressed="false">S</button>
+              <button type="button" data-size="M" aria-pressed="true">M</button>
+              <button type="button" data-size="L" aria-pressed="false">L</button>
+              <button type="button" data-size="XL" aria-pressed="false">XL</button>
+              <button type="button" data-size="XXL" aria-pressed="false">XXL</button>
+            </div>
+            <p class="detail-size-note" id="detailFitNote">Regular fit · Choose your usual size for an easy, balanced silhouette.</p>
+          </div>
+          <div class="detail-side-divider"></div>
+          <div class="detail-care-block"><span class="detail-side-heading">CARE NOTES</span><p id="detailCare">Wash cold with similar colours. Turn inside out and use a low-heat iron.</p></div>
+          <div class="detail-side-foot"><span class="detail-foot-icon">✧</span><span>Selected piece updates the mirror preview automatically.</span></div>
+        </aside>
+      </article>
     </section>
 
     <section class="how-section" id="how-it-works" aria-labelledby="howTitle">
