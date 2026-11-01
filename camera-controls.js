@@ -75,6 +75,11 @@
     camera: document.getElementById("camera"),
     cameraButton: document.getElementById("cameraButton"),
     cameraButtonText: document.getElementById("cameraButtonText"),
+    cameraSelect: document.getElementById("cameraSelect"),
+    cameraZoomControl: document.getElementById("cameraZoomControl"),
+    cameraZoom: document.getElementById("cameraZoom"),
+    cameraZoomValue: document.getElementById("cameraZoomValue"),
+    expandMirrorButton: document.getElementById("expandMirrorButton"),
     resetButton: document.getElementById("resetButton"),
     snapshotButton: document.getElementById("snapshotButton"),
     cameraState: document.getElementById("cameraState"),
@@ -135,6 +140,13 @@
   let latestPoseAt = 0;
   let latestLandmarks = null;
   let smoothedGarmentPoints = null;
+  let latestSegmentationCanvas = null;
+  let segmentationFrameCounter = 0;
+  let selectedCameraDeviceId = "";
+  let activeCameraTrack = null;
+  let cameraZoomCapabilities = null;
+  let stageResizeObserver = null;
+  let stageRefreshFrame = 0;
 
   const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
 
@@ -261,7 +273,7 @@
     } else if (poseUnavailable) {
       elements.stageMessage.textContent = `Camera live · manual preview for ${product.name}`;
     } else if (poseTrackingReady || poseTrackingRequested) {
-      elements.stageMessage.textContent = "Camera live · step into the frame";
+      elements.stageMessage.textContent = "Move camera back until head, shoulders and waist are visible";
     } else {
       elements.stageMessage.textContent = `Live preview · ${product.name} selected`;
     }
@@ -291,7 +303,7 @@
           minPoseDetectionConfidence: 0.55,
           minPosePresenceConfidence: 0.55,
           minTrackingConfidence: 0.5,
-          outputSegmentationMasks: false
+          outputSegmentationMasks: true
         });
       })().then(task => {
         poseLandmarker = task;
@@ -311,21 +323,99 @@
     return visibility >= threshold && presence >= threshold;
   }
 
+  function smoothLandmarkSet(previous, current, responsiveness = .62) {
+    if (!Array.isArray(current)) return current;
+    if (!Array.isArray(previous) || previous.length !== current.length) return current.map(point => point ? { ...point } : point);
+    return current.map((point, index) => {
+      const prior = previous[index];
+      if (!point || !prior) return point ? { ...point } : point;
+      const visibility = point.visibility ?? point.presence ?? 1;
+      const presence = point.presence ?? visibility;
+      // Trust the latest point immediately when it is newly visible; otherwise damp jitter.
+      const blend = visibility < .18 || presence < .18 ? 1 : responsiveness;
+      return {
+        ...point,
+        x: prior.x + (point.x - prior.x) * blend,
+        y: prior.y + (point.y - prior.y) * blend,
+        z: Number.isFinite(point.z) && Number.isFinite(prior.z) ? prior.z + (point.z - prior.z) * blend : point.z
+      };
+    });
+  }
+
+  function getStageImageTransform(sourceWidth, sourceHeight, rect, fit = "cover") {
+    if (!sourceWidth || !sourceHeight || !rect.width || !rect.height) return null;
+    const scale = fit === "contain"
+      ? Math.min(rect.width / sourceWidth, rect.height / sourceHeight)
+      : Math.max(rect.width / sourceWidth, rect.height / sourceHeight);
+    const renderedWidth = sourceWidth * scale;
+    const renderedHeight = sourceHeight * scale;
+    return {
+      scale,
+      x: (rect.width - renderedWidth) / 2,
+      y: (rect.height - renderedHeight) / 2,
+      width: renderedWidth,
+      height: renderedHeight
+    };
+  }
+
+  function currentStageFit() {
+    return window.getComputedStyle(elements.camera).objectFit || "cover";
+  }
+
   function toStagePoint(landmark, rect) {
     const videoWidth = elements.camera.videoWidth;
     const videoHeight = elements.camera.videoHeight;
-    if (!videoWidth || !videoHeight) return null;
-
-    // Match object-fit: cover cropping before applying the mirrored preview.
-    const scale = Math.max(rect.width / videoWidth, rect.height / videoHeight);
-    const renderedWidth = videoWidth * scale;
-    const renderedHeight = videoHeight * scale;
-    const cropX = (renderedWidth - rect.width) / 2;
-    const cropY = (renderedHeight - rect.height) / 2;
-    let x = landmark.x * renderedWidth - cropX;
-    const y = landmark.y * renderedHeight - cropY;
+    const transform = getStageImageTransform(videoWidth, videoHeight, rect, currentStageFit());
+    if (!transform || !landmark) return null;
+    let x = transform.x + landmark.x * transform.width;
+    const y = transform.y + landmark.y * transform.height;
     if (mirrorFlipped) x = rect.width - x;
     return { x, y };
+  }
+
+  function drawSourceToStage(context, source, sourceWidth, sourceHeight, rect, mirrored = mirrorFlipped) {
+    const transform = getStageImageTransform(sourceWidth, sourceHeight, rect, currentStageFit());
+    if (!transform || !source) return;
+    context.save();
+    if (mirrored) {
+      context.translate(rect.width, 0);
+      context.scale(-1, 1);
+    }
+    context.drawImage(source, transform.x, transform.y, transform.width, transform.height);
+    context.restore();
+  }
+
+  function makeSegmentationMaskCanvas(mask) {
+    if (!mask || !mask.width || !mask.height) return null;
+    try {
+      let values;
+      if (typeof mask.getAsFloat32Array === "function") values = mask.getAsFloat32Array();
+      else if (typeof mask.getAsUint8Array === "function") values = mask.getAsUint8Array();
+      if (!values || values.length < mask.width * mask.height) return null;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = mask.width;
+      canvas.height = mask.height;
+      const context = canvas.getContext("2d", { willReadFrequently: false });
+      if (!context) return null;
+      const image = context.createImageData(mask.width, mask.height);
+      const isByteMask = values instanceof Uint8Array || values instanceof Uint8ClampedArray;
+      for (let index = 0; index < mask.width * mask.height; index++) {
+        const confidence = isByteMask ? values[index] / 255 : values[index];
+        // Soft threshold retains clean garment edges while suppressing background noise.
+        const alpha = Math.max(0, Math.min(1, (confidence - 0.20) / 0.62));
+        const offset = index * 4;
+        image.data[offset] = 255;
+        image.data[offset + 1] = 255;
+        image.data[offset + 2] = 255;
+        image.data[offset + 3] = Math.round(alpha * 255);
+      }
+      context.putImageData(image, 0, 0);
+      return canvas;
+    } catch (error) {
+      console.warn("StyleSync segmentation mask fallback:", error);
+      return null;
+    }
   }
 
   function mixColor(hex, target, amount) {
@@ -369,49 +459,91 @@
     const right = Math.min(elements.mirrorFrame.clientWidth, bounds.right);
     const top = Math.max(0, bounds.top);
     const bottom = Math.min(elements.mirrorFrame.clientHeight, bounds.bottom);
-    context.lineWidth = 0.65;
-    if (kind === 'denim' || kind === 'oxford') {
-      context.strokeStyle = kind === 'denim' ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.17)';
-      const span = Math.max(1, (right - left) + (bottom - top));
-      const spacing = Math.max(22, span / 28);
-      for (let offset = left - (bottom - top); offset < right + (bottom - top); offset += spacing) {
-        context.beginPath();
-        context.moveTo(offset, top);
-        context.lineTo(offset + (bottom - top) * 0.55, bottom);
-        context.stroke();
+    const span = Math.max(1, (right - left) + (bottom - top));
+    const spacing = Math.max(7, Math.min(18, distance * (kind === "fleece" ? .035 : .028)));
+    context.lineWidth = Math.max(.55, distance * .0018);
+
+    if (kind === "denim") {
+      context.strokeStyle = "rgba(255,255,255,.20)";
+      for (let offset = left - (bottom - top); offset < right + (bottom - top); offset += spacing * 1.35) {
+        context.beginPath(); context.moveTo(offset, top); context.lineTo(offset + (bottom - top) * .62, bottom); context.stroke();
       }
-      if (kind === 'oxford') {
-        context.strokeStyle = 'rgba(91,78,61,.07)';
-        for (let y = top; y < bottom; y += Math.max(24, span / 24)) {
-          context.beginPath(); context.moveTo(left, y); context.lineTo(right, y); context.stroke();
-        }
+      context.strokeStyle = "rgba(18,35,52,.12)";
+      for (let offset = left - (bottom - top); offset < right + (bottom - top); offset += spacing * 1.35) {
+        context.beginPath(); context.moveTo(offset + 2, top); context.lineTo(offset + 2 + (bottom - top) * .62, bottom); context.stroke();
       }
-    } else if (kind === 'pique') {
-      context.fillStyle = 'rgba(255,255,255,.20)';
-      const spacing = Math.max(20, ((right - left) + (bottom - top)) / 34);
-      for (let y = top + 3; y < bottom; y += spacing) {
-        for (let x = left + 3; x < right; x += spacing) context.fillRect(x, y, 1.25, 1.25);
-      }
-    } else if (kind === 'fleece') {
-      context.strokeStyle = 'rgba(255,255,255,.14)';
-      const spacing = Math.max(22, ((right - left) + (bottom - top)) / 30);
+    } else if (kind === "oxford") {
+      context.strokeStyle = "rgba(110,100,82,.10)";
       for (let y = top; y < bottom; y += spacing) {
-        for (let x = left + ((Math.floor(y / 10) % 2) * spacing * .25); x < right; x += spacing) {
-          context.beginPath(); context.moveTo(x, y); context.lineTo(x + 3, y - 2); context.stroke();
+        context.beginPath(); context.moveTo(left, y); context.lineTo(right, y); context.stroke();
+      }
+      context.strokeStyle = "rgba(255,255,255,.23)";
+      for (let x = left; x < right; x += spacing) {
+        context.beginPath(); context.moveTo(x, top); context.lineTo(x, bottom); context.stroke();
+      }
+    } else if (kind === "smooth") {
+      context.strokeStyle = "rgba(255,255,255,.075)";
+      context.lineWidth = Math.max(.5, distance * .0015);
+      for (let offset = left - (bottom - top); offset < right + (bottom - top); offset += spacing * 2.3) {
+        context.beginPath(); context.moveTo(offset, top); context.lineTo(offset + (bottom - top) * .46, bottom); context.stroke();
+      }
+      context.strokeStyle = "rgba(0,0,0,.07)";
+      for (let offset = left - (bottom - top); offset < right + (bottom - top); offset += spacing * 2.3) {
+        context.beginPath(); context.moveTo(offset + 2, top); context.lineTo(offset + 2 + (bottom - top) * .46, bottom); context.stroke();
+      }
+    } else if (kind === "pique") {
+      context.fillStyle = "rgba(255,255,255,.25)";
+      for (let y = top + 2; y < bottom; y += spacing * .82) {
+        const shift = (Math.floor(y / spacing) % 2) * spacing * .38;
+        for (let x = left + shift + 2; x < right; x += spacing) {
+          context.beginPath(); context.arc(x, y, Math.max(.7, distance * .0028), 0, Math.PI * 2); context.fill();
         }
+      }
+      context.strokeStyle = "rgba(27,42,28,.08)";
+      context.lineWidth = Math.max(.6, distance * .002);
+      for (let y = top + spacing / 2; y < bottom; y += spacing) {
+        context.beginPath(); context.moveTo(left, y); context.lineTo(right, y); context.stroke();
+      }
+    } else if (kind === "fleece") {
+      context.strokeStyle = "rgba(255,255,255,.22)";
+      context.lineWidth = Math.max(.55, distance * .0021);
+      for (let y = top; y < bottom; y += spacing * .72) {
+        const shift = (Math.floor(y / spacing) % 2) * spacing * .36;
+        for (let x = left + shift; x < right; x += spacing * 1.05) {
+          context.beginPath(); context.moveTo(x, y); context.lineTo(x + spacing * .18, y - spacing * .11); context.stroke();
+        }
+      }
+      context.strokeStyle = "rgba(35,36,40,.08)";
+      context.lineWidth = Math.max(.5, distance * .0018);
+      for (let y = top + spacing; y < bottom; y += spacing * 2.1) {
+        context.beginPath(); context.moveTo(left, y); context.quadraticCurveTo((left + right) / 2, y + spacing * .13, right, y); context.stroke();
       }
     } else {
-      context.strokeStyle = 'rgba(255,255,255,.15)';
-      const spacing = Math.max(22, ((right - left) + (bottom - top)) / 28);
-      for (let y = top + 5; y < bottom; y += spacing) {
+      context.strokeStyle = "rgba(255,255,255,.20)";
+      for (let y = top + spacing / 2; y < bottom; y += spacing) {
         context.beginPath(); context.moveTo(left, y); context.quadraticCurveTo((left + right) / 2, y + 2, right, y); context.stroke();
       }
+      context.strokeStyle = "rgba(60,50,70,.08)";
+      for (let y = top + spacing; y < bottom; y += spacing * 2) {
+        context.beginPath(); context.moveTo(left, y); context.quadraticCurveTo((left + right) / 2, y + 1, right, y); context.stroke();
+      }
     }
-    // A soft centre highlight gives the fabric some volume without obscuring the live person.
+
+    // Light drape lines make the overlay read as fabric instead of a flat vector.
+    context.lineWidth = Math.max(1, distance * .005);
+    context.strokeStyle = "rgba(20,18,17,.075)";
+    context.beginPath();
+    context.moveTo((left + right) / 2 - distance * .14, top + distance * .23);
+    context.quadraticCurveTo((left + right) / 2 - distance * .06, top + distance * .48, (left + right) / 2 - distance * .12, top + distance * .70);
+    context.moveTo((left + right) / 2 + distance * .14, top + distance * .23);
+    context.quadraticCurveTo((left + right) / 2 + distance * .06, top + distance * .48, (left + right) / 2 + distance * .12, top + distance * .70);
+    context.stroke();
+
     const sheen = context.createLinearGradient(left, 0, right, 0);
-    sheen.addColorStop(0, 'rgba(255,255,255,.04)');
-    sheen.addColorStop(.48, 'rgba(255,255,255,.19)');
-    sheen.addColorStop(1, 'rgba(0,0,0,.08)');
+    sheen.addColorStop(0, "rgba(255,255,255,.02)");
+    sheen.addColorStop(.34, "rgba(255,255,255,.10)");
+    sheen.addColorStop(.52, "rgba(255,255,255,.18)");
+    sheen.addColorStop(1, "rgba(0,0,0,.10)");
     context.fillStyle = sheen;
     context.fillRect(left, top, Math.max(1, right - left), Math.max(1, bottom - top));
     context.restore();
@@ -427,127 +559,54 @@
       canvas.width = width;
       canvas.height = height;
     }
-    const context = canvas.getContext('2d');
+    const context = canvas.getContext("2d");
     if (!context) return;
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
     context.clearRect(0, 0, rect.width, rect.height);
 
-    const trackedPoints = {};
-    [11, 12, 13, 14, 15, 16, 23, 24].forEach(index => {
-      trackedPoints[index] = landmarkVisible(landmarks[index], index === 11 || index === 12 ? .45 : .24)
-        ? toStagePoint(landmarks[index], rect) : null;
-    });
-    if (smoothedGarmentPoints) {
-      Object.keys(trackedPoints).forEach(key => {
-        const currentPoint = trackedPoints[key];
-        const previousPoint = smoothedGarmentPoints[key];
-        if (currentPoint && previousPoint) {
-          trackedPoints[key] = {
-            x: previousPoint.x + (currentPoint.x - previousPoint.x) * .42,
-            y: previousPoint.y + (currentPoint.y - previousPoint.y) * .42
-          };
-        }
-      });
-    }
-    smoothedGarmentPoints = trackedPoints;
-
-    const product = products.find(item => item.id === selectedProductId) || products[0];
-    const kind = product.id === 'grey-hoodie' ? 'hoodie'
-      : product.id === 'polo-premium' ? 'polo'
-      : product.id === 'oversized-tee' ? 'tee'
-      : product.id === 'denim-blue' ? 'denim'
-      : product.id === 'white-oxford' ? 'oxford' : 'shirt';
-    const longSleeves = kind === 'hoodie' || kind === 'denim' || kind === 'oxford' || kind === 'shirt';
+    const pointAt = (index, threshold = .22) => landmarkVisible(landmarks[index], threshold) ? toStagePoint(landmarks[index], rect) : null;
     const rawArms = [
-      { shoulder: trackedPoints[11], elbow: trackedPoints[13], wrist: trackedPoints[15] },
-      { shoulder: trackedPoints[12], elbow: trackedPoints[14], wrist: trackedPoints[16] }
+      { shoulder: pointAt(11, .42), elbow: pointAt(13, .20), wrist: pointAt(15, .18), side: "left" },
+      { shoulder: pointAt(12, .42), elbow: pointAt(14, .20), wrist: pointAt(16, .18), side: "right" }
     ].filter(arm => arm.shoulder).sort((a, b) => a.shoulder.x - b.shoulder.x);
     if (rawArms.length !== 2) return;
 
-    const shoulderLeft = rawArms[0].shoulder;
-    const shoulderRight = rawArms[1].shoulder;
-    const shoulderDistance = Math.hypot(shoulderRight.x - shoulderLeft.x, shoulderRight.y - shoulderLeft.y);
-    if (shoulderDistance < 25) return;
-    const center = { x: (shoulderLeft.x + shoulderRight.x) / 2, y: (shoulderLeft.y + shoulderRight.y) / 2 };
-    const sizeScale = Number(elements.garmentSize.value) / 34;
+    const rawShoulderLeft = rawArms[0].shoulder;
+    const rawShoulderRight = rawArms[1].shoulder;
+    const rawAxis = unitVector(rawShoulderLeft, rawShoulderRight);
+    const rawShoulderDistance = Math.hypot(rawShoulderRight.x - rawShoulderLeft.x, rawShoulderRight.y - rawShoulderLeft.y);
+    if (rawShoulderDistance < 26 || rawShoulderDistance > rect.width * .92) return;
+
+    const centerRaw = { x: (rawShoulderLeft.x + rawShoulderRight.x) / 2, y: (rawShoulderLeft.y + rawShoulderRight.y) / 2 };
+    let down = { x: -rawAxis.y, y: rawAxis.x };
+    if (down.y < 0) down = { x: -down.x, y: -down.y };
+    const sizeScale = 1 + (Number(elements.garmentSize.value) - 34) * .009;
     const verticalOffset = -(Number(elements.garmentPosition.value) - 22) * rect.height / 100;
     const adjust = point => ({
-      x: center.x + (point.x - center.x) * sizeScale,
-      y: center.y + (point.y - center.y) * sizeScale + verticalOffset
+      x: centerRaw.x + (point.x - centerRaw.x) * sizeScale,
+      y: centerRaw.y + (point.y - centerRaw.y) * sizeScale + verticalOffset
     });
-    const arms = rawArms.map((arm, index) => {
-      const shoulder = adjust(arm.shoulder);
-      const outward = index === 0 ? -1 : 1;
-      let elbow = arm.elbow ? adjust(arm.elbow) : pointOffset(shoulder, outward * shoulderDistance * .40, shoulderDistance * .38);
-      let wrist = arm.wrist ? adjust(arm.wrist) : pointOffset(elbow, outward * shoulderDistance * .24, shoulderDistance * .43);
-      // If an elbow is visible but the wrist is not, continue the same natural arm direction.
-      if (!arm.wrist && arm.elbow) {
-        const direction = unitVector(shoulder, elbow);
-        wrist = pointOffset(elbow, direction.x * shoulderDistance * .67, direction.y * shoulderDistance * .67);
-      }
-      return { shoulder, elbow, wrist };
+    const local = (x, y) => ({
+      x: centerRaw.x + rawAxis.x * rawShoulderDistance * sizeScale * x + down.x * rawShoulderDistance * sizeScale * y,
+      y: centerRaw.y + rawAxis.y * rawShoulderDistance * sizeScale * x + down.y * rawShoulderDistance * sizeScale * y + verticalOffset
     });
+    const shoulderLeft = adjust(rawShoulderLeft);
+    const shoulderRight = adjust(rawShoulderRight);
+    const center = { x: (shoulderLeft.x + shoulderRight.x) / 2, y: (shoulderLeft.y + shoulderRight.y) / 2 };
+    const distance = rawShoulderDistance * sizeScale;
 
-    const hips = [trackedPoints[23], trackedPoints[24]].filter(Boolean).sort((a, b) => a.x - b.x).map(adjust);
-    const axis = unitVector(shoulderLeft, shoulderRight);
-    const distance = shoulderDistance * sizeScale;
-    const neckHalf = distance * (kind === 'hoodie' ? .115 : .105);
-    const topLeft = pointOffset(adjust(shoulderLeft), -axis.x * distance * .045, -axis.y * distance * .045);
-    const topRight = pointOffset(adjust(shoulderRight), axis.x * distance * .045, axis.y * distance * .045);
-
-    let bottomLeft, bottomRight;
-    if (hips.length === 2 && Math.abs(hips[1].y - hips[0].y) < rect.height * .52) {
-      const relaxed = kind === 'tee' ? .30 : kind === 'hoodie' ? .28 : kind === 'denim' ? .26 : .24;
-      bottomLeft = pointOffset(hips[0], -axis.x * distance * relaxed, distance * .09);
-      bottomRight = pointOffset(hips[1], axis.x * distance * relaxed, distance * .09);
-      const minimumBottom = center.y + distance * 1.05;
-      if ((bottomLeft.y + bottomRight.y) / 2 < minimumBottom) {
-        const correction = minimumBottom - (bottomLeft.y + bottomRight.y) / 2;
-        bottomLeft.y += correction;
-        bottomRight.y += correction;
-      }
-    } else {
-      const bodyWidth = kind === 'tee' ? .58 : kind === 'hoodie' ? .54 : .50;
-      bottomLeft = { x: center.x - distance * bodyWidth, y: center.y + distance * 1.22 + verticalOffset };
-      bottomRight = { x: center.x + distance * bodyWidth, y: center.y + distance * 1.22 + verticalOffset };
-    }
-    const bottomY = Math.max(bottomLeft.y, bottomRight.y);
-
-    const sleeveEnds = arms.map(arm => {
-      if (longSleeves) return arm.elbow;
-      return pointOffset(arm.shoulder, (arm.elbow.x - arm.shoulder.x) * .52, (arm.elbow.y - arm.shoulder.y) * .52);
-    });
-    const innerSleeveEdges = arms.map((arm, index) => {
-      const end = sleeveEnds[index];
-      const direction = unitVector(arm.shoulder, end);
-      const normal = { x: -direction.y, y: direction.x };
-      const halfWidth = distance * (longSleeves ? .105 : .118);
-      const first = pointOffset(end, normal.x * halfWidth, normal.y * halfWidth);
-      const second = pointOffset(end, -normal.x * halfWidth, -normal.y * halfWidth);
-      return Math.abs(first.x - center.x) < Math.abs(second.x - center.x) ? first : second;
-    });
-
-    const bodyPath = new Path2D();
-    bodyPath.moveTo(topLeft.x, topLeft.y);
-    bodyPath.lineTo(center.x - axis.x * neckHalf, center.y + distance * .025 + verticalOffset);
-    bodyPath.quadraticCurveTo(center.x - axis.x * neckHalf * .55, center.y + distance * .155 + verticalOffset, center.x, center.y + distance * .155 + verticalOffset);
-    bodyPath.quadraticCurveTo(center.x + axis.x * neckHalf * .55, center.y + distance * .155 + verticalOffset, center.x + axis.x * neckHalf, center.y + distance * .025 + verticalOffset);
-    bodyPath.lineTo(topRight.x, topRight.y);
-    bodyPath.lineTo(innerSleeveEdges[1].x, innerSleeveEdges[1].y);
-    bodyPath.lineTo(bottomRight.x, bottomRight.y);
-    bodyPath.quadraticCurveTo(center.x + distance * .36, bottomY + distance * .055, bottomLeft.x, bottomLeft.y);
-    bodyPath.lineTo(innerSleeveEdges[0].x, innerSleeveEdges[0].y);
-    bodyPath.closePath();
-
-    const bounds = {
-      left: Math.min(topLeft.x, topRight.x, bottomLeft.x, bottomRight.x, ...arms.map(arm => arm.wrist.x)) - distance * .2,
-      right: Math.max(topLeft.x, topRight.x, bottomLeft.x, bottomRight.x, ...arms.map(arm => arm.wrist.x)) + distance * .2,
-      top: Math.min(topLeft.y, topRight.y, ...arms.map(arm => arm.shoulder.y), center.y - distance * (kind === 'hoodie' ? .40 : .08)),
-      bottom: Math.max(bottomLeft.y, bottomRight.y, ...arms.map(arm => arm.wrist.y)) + distance * .12
-    };
+    const product = products.find(item => item.id === selectedProductId) || products[0];
+    const kind = product.id === "grey-hoodie" ? "hoodie"
+      : product.id === "polo-premium" ? "polo"
+      : product.id === "oversized-tee" ? "tee"
+      : product.id === "denim-blue" ? "denim"
+      : product.id === "white-oxford" ? "oxford"
+      : product.id === "black-classic" ? "classic" : "shirt";
+    const longSleeves = ["hoodie", "denim", "oxford", "classic", "shirt"].includes(kind);
+    let torsoHalf = kind === "tee" ? .52 : kind === "hoodie" ? .50 : kind === "denim" ? .47 : kind === "oxford" ? .45 : kind === "polo" ? .45 : kind === "classic" ? .41 : .43;
     const base = product.color;
-    const light = mixColor(base, '#ffffff', .23);
-    const dark = mixColor(base, '#1c1a18', .24);
+    const light = mixColor(base, "#ffffff", kind === "hoodie" ? .25 : .22);
+    const dark = mixColor(base, "#171719", kind === "hoodie" ? .20 : .24);
     const gradientFor = (from, to) => {
       const gradient = context.createLinearGradient(from.x, from.y, to.x, to.y);
       gradient.addColorStop(0, light);
@@ -555,166 +614,342 @@
       gradient.addColorStop(1, dark);
       return gradient;
     };
+    const textureKind = kind === "hoodie" ? "fleece" : kind === "denim" ? "denim" : kind === "oxford" || kind === "shirt" ? "oxford" : kind === "classic" ? "smooth" : kind === "polo" ? "pique" : "jersey";
 
-    context.save();
-    context.lineJoin = 'round';
-    context.lineCap = 'round';
-    context.shadowColor = 'rgba(22,18,14,.22)';
-    context.shadowBlur = Math.max(5, distance * .025);
-    context.shadowOffsetY = Math.max(2, distance * .012);
-
-    // The hood sits behind the shoulders, while the sleeves extend along the actual arm landmarks.
-    if (kind === 'hoodie') {
-      const hood = new Path2D();
-      hood.moveTo(center.x - neckHalf * 1.55, center.y + distance * .06 + verticalOffset);
-      hood.bezierCurveTo(center.x - distance * .29, center.y - distance * .28 + verticalOffset, center.x + distance * .29, center.y - distance * .28 + verticalOffset, center.x + neckHalf * 1.55, center.y + distance * .06 + verticalOffset);
-      hood.quadraticCurveTo(center.x, center.y + distance * .28 + verticalOffset, center.x - neckHalf * 1.55, center.y + distance * .06 + verticalOffset);
-      hood.closePath();
-      context.fillStyle = gradientFor({ x: center.x - distance * .22, y: center.y }, { x: center.x + distance * .22, y: center.y + distance * .2 });
-      context.fill(hood);
-      context.strokeStyle = 'rgba(35,35,39,.42)'; context.lineWidth = Math.max(1.5, distance * .008); context.stroke(hood);
-    }
-
-    const sleevePaths = [];
-    for (const arm of arms) {
-      let elbow = arm.elbow;
-      let cuff = arm.wrist;
-      if (!longSleeves) {
-        const shortEnd = pointOffset(arm.shoulder, (elbow.x - arm.shoulder.x) * .52, (elbow.y - arm.shoulder.y) * .52);
-        const shortDirection = unitVector(arm.shoulder, elbow);
-        const cuffEnd = pointOffset(shortEnd, shortDirection.x * distance * .045, shortDirection.y * distance * .045);
-        const path = makeSleevePath(arm.shoulder, shortEnd, cuffEnd, distance * .155, distance * .118, distance * .105);
-        sleevePaths.push({ path, arm, cuff: cuffEnd, isLong: false });
+    const arms = rawArms.map((arm, index) => {
+      const shoulder = adjust(arm.shoulder);
+      const elbow = arm.elbow ? adjust(arm.elbow) : local(index === 0 ? -.68 : .68, .52);
+      let wrist = arm.wrist ? adjust(arm.wrist) : null;
+      if (!wrist) {
+        const direction = unitVector(shoulder, elbow);
+        wrist = pointOffset(elbow, direction.x * distance * .70, direction.y * distance * .70);
       } else {
-        const path = makeSleevePath(arm.shoulder, elbow, cuff, distance * .145, distance * .105, distance * .068);
-        sleevePaths.push({ path, arm, cuff, isLong: true });
+        // Stop the garment just before the wrist crease so the hand remains visible.
+        const forearm = unitVector(elbow, wrist);
+        const wristLength = Math.hypot(wrist.x - elbow.x, wrist.y - elbow.y);
+        wrist = pointOffset(wrist, -forearm.x * wristLength * .055, -forearm.y * wristLength * .055);
+      }
+      const outward = index === 0 ? -1 : 1;
+      // Let the sleeve cap overlap the shoulder landmark slightly, preventing a visible gap.
+      const sleeveOutset = kind === "tee" ? .065 : kind === "hoodie" ? .052 : .035;
+      const sleeveStart = pointOffset(
+        shoulder,
+        rawAxis.x * distance * sleeveOutset * outward - down.x * distance * .012,
+        rawAxis.y * distance * sleeveOutset * outward - down.y * distance * .012
+      );
+      return { shoulder, sleeveStart, elbow, wrist, outward };
+    });
+
+    const hipLeftRaw = pointAt(23, .20);
+    const hipRightRaw = pointAt(24, .20);
+    let bottomLeft, bottomRight;
+    if (hipLeftRaw && hipRightRaw) {
+      const hips = [adjust(hipLeftRaw), adjust(hipRightRaw)].sort((a, b) => a.x - b.x);
+      const hipDistance = Math.hypot(hips[1].x - hips[0].x, hips[1].y - hips[0].y);
+      const hipMidY = (hips[0].y + hips[1].y) / 2;
+      if (hipDistance > distance * .30 && hipMidY > center.y + distance * .35 && hipMidY < center.y + distance * 2.2) {
+        // Use the observed hip width to taper the garment body instead of carrying
+        // the full shoulder span all the way to the hem.
+        const hipRatio = Math.max(.36, Math.min(.90, hipDistance / rawShoulderDistance));
+        const silhouetteBias = kind === "tee" ? .045 : kind === "hoodie" || kind === "denim" ? .025 : kind === "polo" ? -.01 : kind === "classic" ? -.045 : -.02;
+        torsoHalf = Math.max(.38, Math.min(.55, .32 + hipRatio * .18 + silhouetteBias));
+        const hemDrop = distance * (kind === "tee" ? .075 : kind === "hoodie" ? .115 : kind === "polo" ? .045 : .06);
+        bottomLeft = pointOffset(hips[0], -rawAxis.x * distance * .04 + down.x * hemDrop, -rawAxis.y * distance * .04 + down.y * hemDrop);
+        bottomRight = pointOffset(hips[1], rawAxis.x * distance * .04 + down.x * hemDrop, rawAxis.y * distance * .04 + down.y * hemDrop);
       }
     }
-    sleevePaths.forEach(({ path, cuff, isLong, arm }) => {
-      context.fillStyle = gradientFor({ x: center.x - distance * .6, y: center.y }, { x: center.x + distance * .6, y: center.y + distance });
+    if (!bottomLeft || !bottomRight) {
+      const hemY = kind === "tee" ? 1.12 : kind === "hoodie" ? 1.28 : 1.20;
+      bottomLeft = local(-torsoHalf, hemY);
+      bottomRight = local(torsoHalf, hemY);
+    }
+
+    // Pose shoulder landmarks sit at the arm joints, below the visible shoulder cap.
+    // Raise the yoke so the virtual garment covers the wearer's shirt across the shoulders.
+    const shoulderOutset = kind === "tee" ? .090 : kind === "hoodie" ? .078 : .065;
+    const shoulderLift = kind === "hoodie" ? .205 : kind === "tee" ? .205 : .190;
+    const topLeft = pointOffset(
+      shoulderLeft,
+      -rawAxis.x * distance * shoulderOutset - down.x * distance * shoulderLift,
+      -rawAxis.y * distance * shoulderOutset - down.y * distance * shoulderLift
+    );
+    const topRight = pointOffset(
+      shoulderRight,
+      rawAxis.x * distance * shoulderOutset - down.x * distance * shoulderLift,
+      rawAxis.y * distance * shoulderOutset - down.y * distance * shoulderLift
+    );
+    const sideLeft = local(-torsoHalf - shoulderOutset * .40, .48);
+    const sideRight = local(torsoHalf + shoulderOutset * .40, .48);
+
+    // Place the neckline at the base of the neck, rather than at the shoulder midpoint.
+    // Ear landmarks improve placement when the head is visible; if the head is cropped,
+    // use a stronger shoulder-relative lift. Clamp it to the camera frame to avoid
+    // accidentally painting above the visible neck area.
+    const earLeft = pointAt(7, .38), earRight = pointAt(8, .38);
+    let neckProjection = -distance * .30;
+    if (earLeft && earRight) {
+      const earMid = { x: (earLeft.x + earRight.x) / 2, y: (earLeft.y + earRight.y) / 2 };
+      const earProjection = (earMid.x - center.x) * down.x + (earMid.y - center.y) * down.y + distance * .17;
+      neckProjection = Math.max(-distance * .32, Math.min(-distance * .12, earProjection));
+    }
+    const minNeckY = Math.min(rect.height - distance * .12, 18);
+    const projectedNeckY = center.y + down.y * neckProjection;
+    if (down.y > .2 && projectedNeckY < minNeckY) {
+      neckProjection += (minNeckY - projectedNeckY) / down.y;
+    }
+    const neckCenter = pointOffset(center, down.x * neckProjection, down.y * neckProjection);
+    const neckHalf = distance * (kind === "hoodie" ? .095 : kind === "polo" ? .105 : kind === "tee" ? .105 : .095);
+    // A shallow U-shaped opening leaves only the wearer's actual neck exposed.
+    const neckSideDrop = distance * .025;
+    const neckLeft = pointOffset(neckCenter, -rawAxis.x * neckHalf + down.x * neckSideDrop, -rawAxis.y * neckHalf + down.y * neckSideDrop);
+    const neckRight = pointOffset(neckCenter, rawAxis.x * neckHalf + down.x * neckSideDrop, rawAxis.y * neckHalf + down.y * neckSideDrop);
+    const neckBottom = pointOffset(neckCenter, down.x * distance * .070, down.y * distance * .070);
+    const neckLocal = (x, y) => ({
+      x: neckCenter.x + rawAxis.x * distance * x + down.x * distance * y,
+      y: neckCenter.y + rawAxis.y * distance * x + down.y * distance * y
+    });
+    const bottomCenter = { x: (bottomLeft.x + bottomRight.x) / 2, y: (bottomLeft.y + bottomRight.y) / 2 };
+    const torsoDepth = Math.max(distance * .78, Math.abs((bottomCenter.x - center.x) * down.x + (bottomCenter.y - center.y) * down.y));
+    const localBody = (x, y) => ({
+      x: center.x + rawAxis.x * distance * x + down.x * torsoDepth * y,
+      y: center.y + rawAxis.y * distance * x + down.y * torsoDepth * y
+    });
+    const bounds = {
+      left: Math.max(0, Math.min(topLeft.x, topRight.x, bottomLeft.x, arms[0].wrist.x, arms[1].wrist.x) - distance * .12),
+      right: Math.min(rect.width, Math.max(topLeft.x, topRight.x, bottomRight.x, arms[0].wrist.x, arms[1].wrist.x) + distance * .12),
+      top: Math.max(0, Math.min(topLeft.y, topRight.y, center.y - distance * .28)),
+      bottom: Math.min(rect.height, Math.max(bottomLeft.y, bottomRight.y, arms[0].wrist.y, arms[1].wrist.y) + distance * .08)
+    };
+
+    const drawFabric = (path, shadow = true) => {
+      context.save();
+      if (shadow) {
+        context.shadowColor = "rgba(25,22,20,.18)";
+        context.shadowBlur = Math.max(3, distance * .018);
+        context.shadowOffsetY = Math.max(1, distance * .008);
+      }
+      context.fillStyle = gradientFor(local(-.25, .08), local(.30, 1.0));
       context.fill(path);
       context.shadowBlur = 0;
-      context.strokeStyle = mixColor(base, '#171513', .28);
-      context.lineWidth = Math.max(1.3, distance * .007);
+      context.strokeStyle = mixColor(base, "#171719", .30);
+      context.lineWidth = Math.max(1.15, distance * .0055);
       context.stroke(path);
-      drawTextileTexture(context, path, bounds, kind === 'hoodie' ? 'fleece' : kind === 'denim' ? 'denim' : kind === 'oxford' ? 'oxford' : kind === 'polo' ? 'pique' : kind === 'tee' ? 'jersey' : 'jersey', distance);
-      if (isLong) {
-        const direction = unitVector(arms.find(item => item.wrist === cuff)?.elbow || center, cuff);
-        const normal = { x: -direction.y, y: direction.x };
-        context.strokeStyle = 'rgba(255,255,255,.62)';
-        context.lineWidth = Math.max(2, distance * .012);
+      drawTextileTexture(context, path, bounds, textureKind, distance);
+      context.restore();
+    };
+
+    context.save();
+    context.lineJoin = "round";
+    context.lineCap = "round";
+
+    // 1) Hoodie hood: show only its folded back seam at the nape.
+    // The hood fabric itself stays behind the head/neck and is not painted across the face or chest.
+    if (kind === "hoodie") {
+      context.strokeStyle = "rgba(42,43,47,.38)";
+      context.lineWidth = Math.max(1.2, distance * .006);
+      context.beginPath();
+      const hoodSeamLeft = local(-.18, -.045);
+      const hoodSeamControl = local(0, .075);
+      const hoodSeamRight = local(.18, -.045);
+      context.moveTo(hoodSeamLeft.x, hoodSeamLeft.y);
+      context.quadraticCurveTo(hoodSeamControl.x, hoodSeamControl.y, hoodSeamRight.x, hoodSeamRight.y);
+      context.stroke();
+      context.strokeStyle = "rgba(255,255,255,.28)";
+      context.lineWidth = Math.max(1, distance * .0035);
+      context.beginPath();
+      const hoodFoldLeft = local(-.145, -.025);
+      const hoodFoldControl = local(0, .045);
+      const hoodFoldRight = local(.145, -.025);
+      context.moveTo(hoodFoldLeft.x, hoodFoldLeft.y);
+      context.quadraticCurveTo(hoodFoldControl.x, hoodFoldControl.y, hoodFoldRight.x, hoodFoldRight.y);
+      context.stroke();
+    }
+
+    // 2) Independent sleeves follow shoulder → elbow → wrist. Torso is drawn over their roots.
+    arms.forEach((arm, index) => {
+      const end = longSleeves ? arm.wrist : pointOffset(arm.sleeveStart,
+        (arm.elbow.x - arm.sleeveStart.x) * .55,
+        (arm.elbow.y - arm.sleeveStart.y) * .55);
+      const shoulderWidth = kind === "hoodie" ? .148 : kind === "classic" ? .108 : longSleeves ? .118 : kind === "tee" ? .152 : .132;
+      const elbowWidth = kind === "hoodie" ? .112 : kind === "classic" ? .078 : longSleeves ? .088 : .104;
+      const cuffWidth = kind === "hoodie" ? .078 : kind === "classic" ? .050 : longSleeves ? .058 : .086;
+      const path = makeSleevePath(arm.sleeveStart, arm.elbow, end, distance * shoulderWidth, distance * elbowWidth, distance * cuffWidth);
+      drawFabric(path, true);
+      const direction = unitVector(arm.elbow, end);
+      const normal = { x: -direction.y, y: direction.x };
+      context.strokeStyle = "rgba(255,255,255,.60)";
+      context.lineWidth = Math.max(1.4, distance * .006);
+      context.beginPath();
+      context.moveTo(end.x + normal.x * distance * cuffWidth, end.y + normal.y * distance * cuffWidth);
+      context.lineTo(end.x - normal.x * distance * cuffWidth, end.y - normal.y * distance * cuffWidth);
+      context.stroke();
+      if (kind === "hoodie") {
+        context.strokeStyle = "rgba(40,40,43,.24)";
+        context.lineWidth = Math.max(1, distance * .004);
         context.beginPath();
-        context.moveTo(cuff.x + normal.x * distance * .066, cuff.y + normal.y * distance * .066);
-        context.lineTo(cuff.x - normal.x * distance * .066, cuff.y - normal.y * distance * .066);
-        context.stroke();
-      } else {
-        const direction = unitVector(arm.shoulder, arm.elbow);
-        const normal = { x: -direction.y, y: direction.x };
-        context.strokeStyle = 'rgba(255,255,255,.55)';
-        context.lineWidth = Math.max(1.2, distance * .007);
-        context.beginPath();
-        context.moveTo(cuff.x + normal.x * distance * .105, cuff.y + normal.y * distance * .105);
-        context.lineTo(cuff.x - normal.x * distance * .105, cuff.y - normal.y * distance * .105);
+        context.moveTo(end.x + normal.x * distance * cuffWidth * .72, end.y + normal.y * distance * cuffWidth * .72);
+        context.lineTo(end.x - normal.x * distance * cuffWidth * .72, end.y - normal.y * distance * cuffWidth * .72);
         context.stroke();
       }
     });
 
-    context.fillStyle = gradientFor(topLeft, bottomRight);
-    context.fill(bodyPath);
-    context.shadowBlur = 0;
-    context.strokeStyle = mixColor(base, '#171513', .30);
-    context.lineWidth = Math.max(1.5, distance * .008);
-    context.stroke(bodyPath);
-    const textureKind = kind === 'hoodie' ? 'fleece' : kind === 'denim' ? 'denim' : kind === 'oxford' ? 'oxford' : kind === 'polo' ? 'pique' : 'jersey';
-    drawTextileTexture(context, bodyPath, bounds, textureKind, distance);
+    // 3) Torso is strictly shoulder-to-hip geometry. Arm landmarks no longer define torso width.
+    const bodyPath = new Path2D();
+    // Start exactly at the shoulder joints, then curve inward to the neckline.
+    // This gives the garment a shoulder slope instead of a flat horizontal top.
+    bodyPath.moveTo(topLeft.x, topLeft.y);
+    const leftShoulderControl = local(-.30, -.185);
+    bodyPath.quadraticCurveTo(leftShoulderControl.x, leftShoulderControl.y, neckLeft.x, neckLeft.y);
+    bodyPath.quadraticCurveTo(neckBottom.x - rawAxis.x * distance * .035, neckBottom.y, neckBottom.x, neckBottom.y);
+    bodyPath.quadraticCurveTo(neckBottom.x + rawAxis.x * distance * .035, neckBottom.y, neckRight.x, neckRight.y);
+    const rightShoulderControl = local(.30, -.185);
+    bodyPath.quadraticCurveTo(rightShoulderControl.x, rightShoulderControl.y, topRight.x, topRight.y);
+    bodyPath.quadraticCurveTo(sideRight.x + rawAxis.x * distance * .035, sideRight.y - down.y * distance * .035, sideRight.x, sideRight.y);
+    const rightWaistControl = local(torsoHalf * .90, .79);
+    bodyPath.quadraticCurveTo(rightWaistControl.x, rightWaistControl.y, bottomRight.x, bottomRight.y);
+    bodyPath.quadraticCurveTo(bottomCenter.x + down.x * distance * .04, bottomCenter.y + down.y * distance * .04, bottomLeft.x, bottomLeft.y);
+    const leftWaistControl = local(-torsoHalf * .90, .79);
+    bodyPath.quadraticCurveTo(leftWaistControl.x, leftWaistControl.y, sideLeft.x, sideLeft.y);
+    bodyPath.quadraticCurveTo(sideLeft.x - rawAxis.x * distance * .035, sideLeft.y - down.y * distance * .035, topLeft.x, topLeft.y);
+    bodyPath.closePath();
+    drawFabric(bodyPath, true);
 
-    // Garment-specific neckline and front construction.
-    const neckY = center.y + distance * .155 + verticalOffset;
-    context.lineWidth = Math.max(2, distance * .012);
-    context.strokeStyle = 'rgba(255,255,255,.78)';
-    context.beginPath(); context.moveTo(center.x - neckHalf, center.y + distance * .025 + verticalOffset); context.quadraticCurveTo(center.x, neckY + distance * .025, center.x + neckHalf, center.y + distance * .025 + verticalOffset); context.stroke();
-
-    if (kind === 'shirt' || kind === 'oxford' || kind === 'denim') {
-      const collar = new Path2D();
-      collar.moveTo(center.x - neckHalf, center.y + distance * .025 + verticalOffset);
-      collar.lineTo(center.x - neckHalf * .56, center.y + distance * .235 + verticalOffset);
-      collar.lineTo(center.x, center.y + distance * .15 + verticalOffset);
-      collar.lineTo(center.x + neckHalf * .56, center.y + distance * .235 + verticalOffset);
-      collar.lineTo(center.x + neckHalf, center.y + distance * .025 + verticalOffset);
-      collar.lineTo(center.x + neckHalf * .72, center.y + distance * .005 + verticalOffset);
-      collar.lineTo(center.x, center.y + distance * .105 + verticalOffset);
-      collar.lineTo(center.x - neckHalf * .72, center.y + distance * .005 + verticalOffset);
-      collar.closePath();
-      context.fillStyle = mixColor(base, '#ffffff', .35); context.fill(collar);
-      context.strokeStyle = 'rgba(40,35,30,.35)'; context.lineWidth = Math.max(1, distance * .005); context.stroke(collar);
-      context.strokeStyle = 'rgba(255,255,255,.68)'; context.lineWidth = Math.max(1.4, distance * .007);
-      context.beginPath(); context.moveTo(center.x, neckY); context.lineTo(center.x, bottomY - distance * .10); context.stroke();
-      const buttonCount = 5;
-      context.fillStyle = 'rgba(255,255,255,.82)';
-      for (let index = 0; index < buttonCount; index++) {
-        const y = neckY + distance * (.22 + index * .18);
-        if (y < bottomY - distance * .06) { context.beginPath(); context.arc(center.x + distance * .012, y, Math.max(1.5, distance * .009), 0, Math.PI * 2); context.fill(); }
+    // Neckline ring / collar details.
+    if (kind === "shirt" || kind === "oxford" || kind === "classic" || kind === "denim") {
+      const collarLeft = neckLeft, collarRight = neckRight;
+      const collarMid = neckBottom;
+      const leftFlap = new Path2D();
+      leftFlap.moveTo(collarLeft.x, collarLeft.y);
+      leftFlap.lineTo(neckLocal(-.045, .105).x, neckLocal(-.045, .105).y);
+      leftFlap.lineTo(collarMid.x, collarMid.y);
+      leftFlap.lineTo(neckLocal(-.075, -.025).x, neckLocal(-.075, -.025).y);
+      leftFlap.closePath();
+      const rightFlap = new Path2D();
+      rightFlap.moveTo(collarRight.x, collarRight.y);
+      rightFlap.lineTo(neckLocal(.045, .105).x, neckLocal(.045, .105).y);
+      rightFlap.lineTo(collarMid.x, collarMid.y);
+      rightFlap.lineTo(neckLocal(.075, -.025).x, neckLocal(.075, -.025).y);
+      rightFlap.closePath();
+      context.fillStyle = mixColor(base, "#ffffff", .38); context.fill(leftFlap); context.fill(rightFlap);
+      context.strokeStyle = "rgba(42,36,30,.35)"; context.lineWidth = Math.max(1, distance * .004); context.stroke(leftFlap); context.stroke(rightFlap);
+      context.strokeStyle = "rgba(255,255,255,.76)"; context.lineWidth = Math.max(1.5, distance * .006);
+      context.beginPath(); context.moveTo(neckBottom.x, neckBottom.y + down.y * distance * .06); context.lineTo(bottomCenter.x, bottomCenter.y - down.y * distance * .08); context.stroke();
+      for (let index = 0; index < 5; index++) {
+        const point = localBody(0, .18 + index * .15);
+        context.fillStyle = "rgba(255,255,255,.92)";
+        context.beginPath(); context.arc(point.x + rawAxis.x * distance * .012, point.y, Math.max(1.5, distance * .007), 0, Math.PI * 2); context.fill();
       }
-      if (kind === 'denim') {
-        context.strokeStyle = 'rgba(255,255,255,.75)'; context.lineWidth = Math.max(1.3, distance * .006);
+      if (kind === "denim") {
+        // Western yoke and twin patch pockets distinguish the denim shirt cut.
+        context.strokeStyle = "rgba(245,248,252,.72)";
+        context.lineWidth = Math.max(1.3, distance * .005);
+        context.beginPath();
+        const yokeLeft = localBody(-.43, .21), yokeCenter = localBody(0, .31), yokeRight = localBody(.43, .21);
+        context.moveTo(yokeLeft.x, yokeLeft.y);
+        context.quadraticCurveTo(yokeCenter.x, yokeCenter.y, yokeRight.x, yokeRight.y);
+        context.stroke();
         [-1, 1].forEach(side => {
-          const x = center.x + side * distance * .23, y = center.y + distance * .39;
-          context.strokeRect(x - distance * .075, y, distance * .15, distance * .17);
-          context.beginPath(); context.moveTo(x - distance * .075, y + distance * .02); context.lineTo(x, y + distance * .06); context.lineTo(x + distance * .075, y + distance * .02); context.stroke();
+          const pocketCenter = localBody(side * .255, .39);
+          const pocketWidth = distance * .105, pocketHeight = distance * .15;
+          const pocket = new Path2D();
+          pocket.moveTo(pocketCenter.x - pocketWidth, pocketCenter.y);
+          pocket.lineTo(pocketCenter.x + pocketWidth, pocketCenter.y);
+          pocket.lineTo(pocketCenter.x + pocketWidth * .88, pocketCenter.y + pocketHeight * .82);
+          pocket.lineTo(pocketCenter.x, pocketCenter.y + pocketHeight);
+          pocket.lineTo(pocketCenter.x - pocketWidth * .88, pocketCenter.y + pocketHeight * .82);
+          pocket.closePath();
+          context.fillStyle = mixColor(base, "#ffffff", .09); context.fill(pocket);
+          context.strokeStyle = "rgba(241,247,253,.68)"; context.lineWidth = Math.max(1, distance * .004); context.stroke(pocket);
+          context.fillStyle = "rgba(231,237,242,.88)";
+          context.beginPath(); context.arc(pocketCenter.x, pocketCenter.y + pocketHeight * .18, Math.max(1.4, distance * .005), 0, Math.PI * 2); context.fill();
         });
       } else {
-        const x = center.x + distance * .23, y = center.y + distance * .39;
-        context.strokeStyle = 'rgba(255,255,255,.62)'; context.lineWidth = Math.max(1.2, distance * .006); context.strokeRect(x - distance * .075, y, distance * .15, distance * .17);
+        const pocketY = localBody(.25, .32);
+        context.strokeStyle = "rgba(255,255,255,.56)"; context.lineWidth = Math.max(1.1, distance * .0045);
+        context.strokeRect(pocketY.x - distance * .065, pocketY.y, distance * .13, distance * .16);
       }
-    } else if (kind === 'polo') {
+    } else if (kind === "polo") {
+      const leftCollar = neckLeft, rightCollar = neckRight, centerCollar = neckBottom;
       const collar = new Path2D();
-      collar.moveTo(center.x - neckHalf, center.y + distance * .02 + verticalOffset);
-      collar.lineTo(center.x - distance * .045, center.y + distance * .19 + verticalOffset);
-      collar.lineTo(center.x, center.y + distance * .12 + verticalOffset);
-      collar.lineTo(center.x + distance * .045, center.y + distance * .19 + verticalOffset);
-      collar.lineTo(center.x + neckHalf, center.y + distance * .02 + verticalOffset);
-      collar.lineTo(center.x + neckHalf * .7, center.y + distance * .01 + verticalOffset);
-      collar.lineTo(center.x, center.y + distance * .105 + verticalOffset);
+      collar.moveTo(leftCollar.x, leftCollar.y);
+      collar.lineTo(neckLocal(-.045, .105).x, neckLocal(-.045, .105).y);
+      collar.lineTo(centerCollar.x, centerCollar.y);
+      collar.lineTo(neckLocal(.045, .105).x, neckLocal(.045, .105).y);
+      collar.lineTo(rightCollar.x, rightCollar.y);
       collar.closePath();
-      context.fillStyle = mixColor(base, '#ffffff', .34); context.fill(collar); context.strokeStyle = 'rgba(35,35,30,.35)'; context.stroke(collar);
-      context.strokeStyle = 'rgba(255,255,255,.78)'; context.lineWidth = Math.max(1.5, distance * .008);
-      context.beginPath(); context.moveTo(center.x, center.y + distance * .17); context.lineTo(center.x, center.y + distance * .42); context.stroke();
-      context.fillStyle = 'rgba(255,255,255,.82)';
-      [0, 1].forEach(index => { context.beginPath(); context.arc(center.x + distance * .014, center.y + distance * (.24 + index * .10), Math.max(1.4, distance * .008), 0, Math.PI * 2); context.fill(); });
-    } else if (kind === 'hoodie') {
-      context.strokeStyle = 'rgba(245,245,245,.86)'; context.lineWidth = Math.max(2, distance * .012);
+      context.fillStyle = mixColor(base, "#ffffff", .30); context.fill(collar);
+      context.strokeStyle = "rgba(35,38,31,.35)"; context.lineWidth = Math.max(1, distance * .004); context.stroke(collar);
+      context.strokeStyle = "rgba(255,255,255,.78)"; context.lineWidth = Math.max(1.5, distance * .006);
+      context.beginPath(); context.moveTo(centerCollar.x, centerCollar.y); context.lineTo(localBody(0, .36).x, localBody(0, .36).y); context.stroke();
+      [0, 1].forEach(index => { const p = localBody(.012, .20 + index * .09); context.fillStyle = "rgba(255,255,255,.9)"; context.beginPath(); context.arc(p.x, p.y, Math.max(1.4, distance * .006), 0, Math.PI * 2); context.fill(); });
+    } else if (kind === "hoodie") {
+      // A compact ribbed neck seam closes the upper chest without covering the neck.
+      context.strokeStyle = "rgba(255,255,255,.72)";
+      context.lineWidth = Math.max(2, distance * .009);
+      context.beginPath();
+      context.moveTo(neckLeft.x, neckLeft.y);
+      context.quadraticCurveTo(neckBottom.x, neckBottom.y + down.y * distance * .018, neckRight.x, neckRight.y);
+      context.stroke();
+      context.strokeStyle = "rgba(38,39,43,.24)";
+      context.lineWidth = Math.max(1, distance * .0035);
+      context.beginPath();
+      context.moveTo(neckLeft.x, neckLeft.y + down.y * distance * .012);
+      context.quadraticCurveTo(neckBottom.x, neckBottom.y + down.y * distance * .030, neckRight.x, neckRight.y + down.y * distance * .012);
+      context.stroke();
+
+      // Hood drawcords and kangaroo pocket sit on the front panel, below the neckline.
+      context.strokeStyle = "rgba(245,245,245,.92)"; context.lineWidth = Math.max(2, distance * .009);
       [-1, 1].forEach(side => {
-        context.beginPath(); context.moveTo(center.x + side * distance * .055, center.y + distance * .17); context.quadraticCurveTo(center.x + side * distance * .095, center.y + distance * .38, center.x + side * distance * .085, center.y + distance * .48); context.stroke();
-        context.fillStyle = 'rgba(245,245,245,.9)'; context.beginPath(); context.arc(center.x + side * distance * .085, center.y + distance * .48, Math.max(2, distance * .012), 0, Math.PI * 2); context.fill();
+        const start = pointOffset(neckBottom, rawAxis.x * distance * side * .045 + down.x * distance * .06, rawAxis.y * distance * side * .045 + down.y * distance * .06), end = localBody(side * .075, .48);
+        const controlOne = localBody(side * .07, .22), controlTwo = localBody(side * .045, .39);
+        context.beginPath(); context.moveTo(start.x, start.y);
+        context.bezierCurveTo(controlOne.x, controlOne.y, controlTwo.x, controlTwo.y, end.x, end.y);
+        context.stroke();
+        context.fillStyle = "rgba(245,245,245,.94)"; context.beginPath(); context.arc(end.x, end.y, Math.max(2, distance * .009), 0, Math.PI * 2); context.fill();
       });
       const pocket = new Path2D();
-      pocket.moveTo(center.x - distance * .29, center.y + distance * .72);
-      pocket.quadraticCurveTo(center.x, center.y + distance * .66, center.x + distance * .29, center.y + distance * .72);
-      pocket.lineTo(center.x + distance * .25, center.y + distance * .91);
-      pocket.quadraticCurveTo(center.x, center.y + distance * .98, center.x - distance * .25, center.y + distance * .91);
+      pocket.moveTo(localBody(-.29, .58).x, localBody(-.29, .58).y);
+      pocket.quadraticCurveTo(localBody(0, .54).x, localBody(0, .54).y, localBody(.29, .58).x, localBody(.29, .58).y);
+      pocket.lineTo(localBody(.255, .80).x, localBody(.255, .80).y);
+      pocket.quadraticCurveTo(localBody(0, .87).x, localBody(0, .87).y, localBody(-.255, .80).x, localBody(-.255, .80).y);
       pocket.closePath();
-      context.fillStyle = 'rgba(0,0,0,.07)'; context.fill(pocket);
-      context.strokeStyle = 'rgba(255,255,255,.52)'; context.lineWidth = Math.max(1.5, distance * .008); context.stroke(pocket);
-      context.strokeStyle = 'rgba(255,255,255,.70)'; context.lineWidth = Math.max(2, distance * .012);
-      context.beginPath(); context.moveTo(bottomLeft.x, bottomLeft.y - distance * .04); context.quadraticCurveTo(center.x, bottomY + distance * .015, bottomRight.x, bottomRight.y - distance * .04); context.stroke();
+      context.fillStyle = mixColor(base, "#16171a", .08); context.fill(pocket);
+      context.strokeStyle = "rgba(255,255,255,.48)"; context.lineWidth = Math.max(1.3, distance * .006); context.stroke(pocket);
+      context.strokeStyle = "rgba(255,255,255,.48)"; context.lineWidth = Math.max(1.5, distance * .006);
+      context.beginPath(); context.moveTo(bottomLeft.x, bottomLeft.y - down.y * distance * .035); context.quadraticCurveTo(bottomCenter.x, bottomCenter.y + down.y * distance * .01, bottomRight.x, bottomRight.y - down.y * distance * .035); context.stroke();
+      context.strokeStyle = "rgba(34,35,39,.18)"; context.lineWidth = Math.max(1.2, distance * .006);
+      context.beginPath(); context.moveTo(bottomLeft.x, bottomLeft.y - down.y * distance * .012); context.quadraticCurveTo(bottomCenter.x, bottomCenter.y + down.y * distance * .032, bottomRight.x, bottomRight.y - down.y * distance * .012); context.stroke();
     } else {
-      // Crew-neck tee: a clear rib collar and dropped shoulder seam.
-      context.strokeStyle = 'rgba(255,255,255,.8)'; context.lineWidth = Math.max(2.5, distance * .016);
-      context.beginPath(); context.moveTo(center.x - neckHalf, center.y + distance * .025 + verticalOffset); context.quadraticCurveTo(center.x, center.y + distance * .21 + verticalOffset, center.x + neckHalf, center.y + distance * .025 + verticalOffset); context.stroke();
-      context.strokeStyle = 'rgba(80,65,95,.28)'; context.lineWidth = Math.max(1, distance * .006);
-      context.beginPath(); context.moveTo(topLeft.x + axis.x * distance * .08, topLeft.y + distance * .04); context.lineTo(bottomLeft.x + axis.x * distance * .04, bottomLeft.y - distance * .04); context.moveTo(topRight.x - axis.x * distance * .08, topRight.y + distance * .04); context.lineTo(bottomRight.x - axis.x * distance * .04, bottomRight.y - distance * .04); context.stroke();
+      // Ribbed crew neck and dropped shoulder seams for the oversized tee.
+      context.strokeStyle = "rgba(255,255,255,.82)"; context.lineWidth = Math.max(2.4, distance * .012);
+      context.beginPath(); context.moveTo(neckLeft.x, neckLeft.y); context.quadraticCurveTo(neckBottom.x, neckBottom.y + down.y * distance * .025, neckRight.x, neckRight.y); context.stroke();
+      context.strokeStyle = "rgba(70,54,88,.25)"; context.lineWidth = Math.max(1, distance * .004);
+      context.beginPath(); context.moveTo(topLeft.x + rawAxis.x * distance * .07, topLeft.y + down.y * distance * .05); context.lineTo(sideLeft.x + rawAxis.x * distance * .02, sideLeft.y); context.moveTo(topRight.x - rawAxis.x * distance * .07, topRight.y + down.y * distance * .05); context.lineTo(sideRight.x - rawAxis.x * distance * .02, sideRight.y); context.stroke();
     }
 
-    // Small sleeve seams and a neat hem make the cut legible at demo distance.
-    context.strokeStyle = 'rgba(255,255,255,.55)';
-    context.lineWidth = Math.max(1, distance * .006);
-    context.setLineDash([Math.max(2, distance * .012), Math.max(2, distance * .009)]);
+    // Tailored construction seams and a subtle hem topstitch.
+    context.strokeStyle = "rgba(255,255,255,.48)";
+    context.lineWidth = Math.max(1, distance * .0035);
+    context.setLineDash([Math.max(2, distance * .010), Math.max(2, distance * .008)]);
     context.beginPath();
-    context.moveTo(bottomLeft.x + distance * .04, bottomLeft.y - distance * .035);
-    context.quadraticCurveTo(center.x, bottomY + distance * .04, bottomRight.x - distance * .04, bottomRight.y - distance * .035);
+    context.moveTo(bottomLeft.x + rawAxis.x * distance * .04, bottomLeft.y - down.y * distance * .025);
+    context.quadraticCurveTo(bottomCenter.x, bottomCenter.y + down.y * distance * .02, bottomRight.x - rawAxis.x * distance * .04, bottomRight.y - down.y * distance * .025);
     context.stroke();
     context.setLineDash([]);
     context.restore();
+
+    // 4) Use the person mask to trim garment edges to the live silhouette.
+    if (latestSegmentationCanvas) {
+      context.save();
+      context.globalCompositeOperation = "destination-in";
+      drawSourceToStage(context, latestSegmentationCanvas, latestSegmentationCanvas.width, latestSegmentationCanvas.height, rect, mirrorFlipped);
+      context.restore();
+    }
+
+    // The raised yoke reaches the neck base; only the small natural neck opening remains visible.
+    // Avoid repainting a guessed face ellipse over the garment: that can cover the whole chest on
+    // cameras with unusual framing. Person segmentation is the only foreground edge mask here.
+
   }
 
   function clearGarmentCanvas() {
@@ -743,11 +978,12 @@
         poseDetected = false;
         latestLandmarks = null;
         smoothedGarmentPoints = null;
+        latestSegmentationCanvas = null;
         elements.mirrorFrame.classList.remove("pose-detected");
         elements.shirtOverlay.classList.add("is-searching");
         clearPoseCanvas();
         clearGarmentCanvas();
-        setPoseStatus("STEP INTO FRAME", "searching");
+        setPoseStatus("STEP BACK / FULL FRAME", "searching");
         updateStageMessage();
       }
       return;
@@ -763,8 +999,15 @@
     poseDetected = true;
     elements.mirrorFrame.classList.add("pose-detected");
     elements.shirtOverlay.classList.remove("is-searching");
-    latestLandmarks = landmarks;
-    drawGarmentOverlay(landmarks, rect);
+    latestLandmarks = smoothLandmarkSet(latestLandmarks, landmarks, .62);
+    if (result.segmentationMasks && result.segmentationMasks[0]) {
+      // Copy mask data on alternating frames to balance edge quality with webcam FPS.
+      segmentationFrameCounter += 1;
+      if (segmentationFrameCounter % 2 === 0 || !latestSegmentationCanvas) {
+        latestSegmentationCanvas = makeSegmentationMaskCanvas(result.segmentationMasks[0]);
+      }
+    }
+    drawGarmentOverlay(latestLandmarks, rect);
     setPoseStatus("BODY TRACKED", "detected");
     updateStageMessage();
   }
@@ -829,7 +1072,7 @@
       lastInferenceAt = 0;
       lastVideoTime = -1;
       lastTaskTimestamp = 0;
-      setPoseStatus("STEP INTO FRAME", "searching");
+      setPoseStatus("STEP BACK / FULL FRAME", "searching");
       updateStageMessage();
       runPoseLoop();
     } catch (error) {
@@ -853,6 +1096,8 @@
     latestPoseAt = 0;
     smoothedGarmentPoints = null;
     latestLandmarks = null;
+    latestSegmentationCanvas = null;
+    segmentationFrameCounter = 0;
     if (poseAnimationFrame) window.cancelAnimationFrame(poseAnimationFrame);
     poseAnimationFrame = 0;
     elements.mirrorFrame.classList.remove("pose-detected");
@@ -886,11 +1131,114 @@
     if (poseDetected && latestLandmarks) drawGarmentOverlay(latestLandmarks, elements.mirrorFrame.getBoundingClientRect());
   }
 
+  function refreshStageAfterResize() {
+    if (stageRefreshFrame) window.cancelAnimationFrame(stageRefreshFrame);
+    stageRefreshFrame = window.requestAnimationFrame(() => {
+      stageRefreshFrame = 0;
+      if (poseDetected && latestLandmarks) drawGarmentOverlay(latestLandmarks, elements.mirrorFrame.getBoundingClientRect());
+    });
+  }
+
+  function installStageResizeHandling() {
+    if ("ResizeObserver" in window) {
+      stageResizeObserver = new ResizeObserver(refreshStageAfterResize);
+      stageResizeObserver.observe(elements.mirrorFrame);
+    }
+    window.addEventListener("resize", refreshStageAfterResize, { passive: true });
+    window.addEventListener("orientationchange", () => window.setTimeout(refreshStageAfterResize, 180), { passive: true });
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", refreshStageAfterResize, { passive: true });
+    if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+      navigator.mediaDevices.addEventListener("devicechange", () => void refreshCameraDevices());
+    }
+  }
+
+  async function refreshCameraDevices(activeDeviceId = "") {
+    if (!elements.cameraSelect || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
+    try {
+      const devices = (await navigator.mediaDevices.enumerateDevices()).filter(device => device.kind === "videoinput");
+      const current = activeDeviceId || selectedCameraDeviceId;
+      const escapeAttribute = value => String(value || "").replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
+      elements.cameraSelect.innerHTML = '<option value="">Auto camera</option>' + devices.map((device, index) => {
+        const label = device.label || `Camera ${index + 1}`;
+        return `<option value="${escapeAttribute(device.deviceId)}">${escapeAttribute(label)}</option>`;
+      }).join("");
+      elements.cameraSelect.value = current && devices.some(device => device.deviceId === current) ? current : "";
+    } catch (error) {
+      console.warn("Unable to enumerate camera devices:", error);
+    }
+  }
+
+  async function toggleMirrorFullscreen() {
+    try {
+      if (!document.fullscreenElement) {
+        if (elements.mirrorFrame.requestFullscreen) await elements.mirrorFrame.requestFullscreen();
+      } else if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      }
+    } catch (error) {
+      showToast("Fullscreen is unavailable in this browser. You can still resize the window.");
+    }
+  }
+
   function setMirrorFlipped(flipped) {
     mirrorFlipped = flipped;
     elements.camera.classList.toggle("is-unmirrored", !flipped);
     elements.flipButton.setAttribute("aria-pressed", String(flipped));
     elements.flipButton.querySelector("span").textContent = flipped ? "Mirror view" : "Normal view";
+  }
+
+  function hideCameraZoomControl(message = "") {
+    cameraZoomCapabilities = null;
+    if (elements.cameraZoomControl) elements.cameraZoomControl.hidden = true;
+    if (elements.cameraZoomValue && message) elements.cameraZoomValue.textContent = message;
+  }
+
+  async function configureCameraFraming(track) {
+    activeCameraTrack = track || null;
+    hideCameraZoomControl();
+    if (!track || typeof track.getCapabilities !== "function" || !elements.cameraZoom) {
+      showToast("This camera has fixed framing. Move it farther back to include more of your body.");
+      return;
+    }
+
+    try {
+      const capabilities = track.getCapabilities();
+      const zoom = capabilities && capabilities.zoom;
+      if (!zoom || !Number.isFinite(zoom.min) || !Number.isFinite(zoom.max) || zoom.max <= zoom.min) {
+        showToast("This camera has no adjustable zoom-out control. Move it farther back for a fuller view.");
+        return;
+      }
+
+      cameraZoomCapabilities = { min: zoom.min, max: zoom.max, step: zoom.step || 0.1 };
+      elements.cameraZoom.min = String(zoom.min);
+      elements.cameraZoom.max = String(zoom.max);
+      elements.cameraZoom.step = String(cameraZoomCapabilities.step);
+      elements.cameraZoom.value = String(zoom.min);
+      if (elements.cameraZoomControl) elements.cameraZoomControl.hidden = false;
+      if (elements.cameraZoomValue) elements.cameraZoomValue.textContent = "WIDEST";
+
+      // Start at the camera's widest available framing. Some webcams expose only a fixed zoom.
+      await track.applyConstraints({ advanced: [{ zoom: zoom.min }] });
+    } catch (error) {
+      console.info("StyleSync: camera does not expose an adjustable zoom control.", error);
+      hideCameraZoomControl();
+    }
+  }
+
+  async function applyCameraZoom() {
+    if (!activeCameraTrack || !cameraZoomCapabilities || !elements.cameraZoom) return;
+    const zoom = Number(elements.cameraZoom.value);
+    try {
+      await activeCameraTrack.applyConstraints({ advanced: [{ zoom }] });
+      if (elements.cameraZoomValue) {
+        const isWide = Math.abs(zoom - cameraZoomCapabilities.min) < cameraZoomCapabilities.step / 2;
+        elements.cameraZoomValue.textContent = isWide ? "WIDEST" : `${zoom.toFixed(1)}×`;
+      }
+      refreshStageAfterResize();
+    } catch (error) {
+      console.warn("StyleSync camera zoom could not be changed:", error);
+      showToast("This camera does not support that zoom setting.");
+    }
   }
 
   async function startCamera() {
@@ -904,26 +1252,33 @@
     elements.cameraButtonText.textContent = "Connecting…";
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: { ideal: "user" }
-        }
-      });
+      const videoConstraints = {
+        width: { ideal: 1280 },
+        height: { ideal: 960 },
+        aspectRatio: { ideal: 4 / 3 },
+        frameRate: { ideal: 30, max: 30 }
+      };
+      if (selectedCameraDeviceId) videoConstraints.deviceId = { exact: selectedCameraDeviceId };
+      else videoConstraints.facingMode = { ideal: "user" };
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: videoConstraints });
 
       cameraStream = stream;
       elements.camera.srcObject = stream;
       await elements.camera.play();
+      const activeTrack = stream.getVideoTracks()[0];
+      const activeTrackSettings = activeTrack?.getSettings?.() || {};
+      if (activeTrackSettings.deviceId) selectedCameraDeviceId = activeTrackSettings.deviceId;
+      await configureCameraFraming(activeTrack);
+      await refreshCameraDevices(activeTrackSettings.deviceId || "");
       setCameraState(true);
+      refreshStageAfterResize();
       void startPoseTracking();
       stream.getVideoTracks().forEach(track => {
         track.addEventListener("ended", () => {
           if (cameraStream === stream) stopCamera(false);
         }, { once: true });
       });
-      showToast("Camera connected. The AI tracker is loading; stand back so your shoulders are visible.");
+      showToast("Camera connected. For a fuller view, use the widest camera framing and stand back until your head, shoulders and waist fit in frame.");
     } catch (error) {
       console.error("StyleSync camera error:", error);
       if (cameraStream) {
@@ -953,6 +1308,8 @@
       cameraStream.getTracks().forEach(track => track.stop());
       cameraStream = null;
     }
+    activeCameraTrack = null;
+    hideCameraZoomControl();
     if (elements.camera) {
       elements.camera.pause();
       elements.camera.srcObject = null;
@@ -1003,13 +1360,8 @@
     context.fillRect(0, 0, width, height);
 
     if (cameraStream && elements.camera.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      context.save();
-      if (mirrorFlipped) {
-        context.translate(width, 0);
-        context.scale(-1, 1);
-      }
-      context.drawImage(elements.camera, 0, 0, width, height);
-      context.restore();
+      // Match the live stage's cover/contain mapping so portrait snapshots do not stretch.
+      drawSourceToStage(context, elements.camera, elements.camera.videoWidth, elements.camera.videoHeight, { width, height }, mirrorFlipped);
     }
 
     if (poseDetected && elements.poseCanvas) {
@@ -1080,6 +1432,24 @@
     updateOverlayState();
   });
   elements.flipButton.addEventListener("click", () => setMirrorFlipped(!mirrorFlipped));
+  elements.expandMirrorButton?.addEventListener("click", toggleMirrorFullscreen);
+  document.addEventListener("fullscreenchange", () => {
+    const active = document.fullscreenElement === elements.mirrorFrame;
+    elements.expandMirrorButton?.setAttribute("aria-pressed", String(active));
+    if (elements.expandMirrorButton) {
+      elements.expandMirrorButton.title = active ? "Exit expanded mirror" : "Expand smart mirror";
+      elements.expandMirrorButton.setAttribute("aria-label", elements.expandMirrorButton.title);
+    }
+    refreshStageAfterResize();
+  });
+  elements.cameraSelect?.addEventListener("change", async () => {
+    selectedCameraDeviceId = elements.cameraSelect.value;
+    if (cameraStream) {
+      stopCamera(false);
+      await startCamera();
+    }
+  });
+  elements.cameraZoom?.addEventListener("input", applyCameraZoom);
   elements.garmentSize.addEventListener("input", updateFitControls);
   elements.garmentPosition.addEventListener("input", updateFitControls);
 
@@ -1116,6 +1486,8 @@
   renderProducts();
   setSelectedProduct(selectedProductId);
   setCameraState(false);
+  installStageResizeHandling();
+  void refreshCameraDevices();
   updateFitControls();
   updateOverlayState();
   setMirrorFlipped(true);
