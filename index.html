@@ -1,710 +1,193 @@
-﻿<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>StyleSync</title>
-
-    <!-- Google Fonts -->
-
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap"
-          rel="stylesheet">
-
-    <!-- Remix Icons -->
-
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css"
-          rel="stylesheet">
-
-    <!-- CSS -->
-
-    <link rel="stylesheet"
-          href="styles.css">
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f6f4f1">
+  <meta name="description" content="StyleSync — an interactive smart mirror and digital wardrobe demo.">
+  <title>StyleSync | Smart Virtual Trial Room</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="camera-controls.js" defer></script>
 </head>
-
 <body>
+  <header class="topbar" id="home">
+    <a class="brand" href="#home" aria-label="StyleSync home">
+      <span class="brand-mark" aria-hidden="true">S<span>S</span></span>
+      <span class="brand-name">StyleSync</span>
+    </a>
 
-    <!--=========================
-            NAVBAR
-    ==========================-->
-
-    <nav>
-
-        <div class="logo">
-
-            StyleSync
-
-        </div>
-
-        <ul>
-
-            <li>
-
-                <a href="#">
-
-                    Home
-
-                </a>
-
-            </li>
-
-            <li>
-
-                <a href="#">
-
-                    Products
-
-                </a>
-
-            </li>
-
-            <li>
-
-                <a href="#">
-
-                    About
-
-                </a>
-
-            </li>
-
-            <li>
-
-                <a href="#">
-
-                    Contact
-
-                </a>
-
-            </li>
-
-        </ul>
-
-        <div class="buttons">
-
-            <button class="login">
-
-                Login
-
-            </button>
-
-            <button class="signup">
-
-                Sign Up
-
-            </button>
-
-        </div>
-
+    <nav class="main-nav" aria-label="Main navigation">
+      <a class="nav-link is-active" href="#home">Home</a>
+      <a class="nav-link" href="#products">Wardrobe</a>
+      <a class="nav-link" href="#how-it-works">How it works</a>
+      <a class="nav-link" href="#about">About</a>
     </nav>
 
-
-    <!--=========================
-        VIRTUAL TRIAL ROOM
-    ==========================-->
-
-    <section class="trialRoom">
-        <!--=========================
-                LEFT SIDEBAR
-        ==========================-->
-
-        <aside class="catalog glass">
-
-            <!-- Header -->
-
-            <div class="catalogHeader">
-
-                <h2>
-
-                    StyleSync
-
-                </h2>
-
-                <p>
-
-                    AI Virtual Trial Room
-
-                </p>
-
-            </div>
-
-
-            <!-- Categories -->
-
-            <div class="categoryTabs">
-
-                <div class="category active">
-
-                    Shirts
-
-                </div>
-
-                <div class="category">
-
-                    Pants
-
-                </div>
-
-                <div class="category">
-
-                    Shoes
-
-                </div>
-
-                <div class="category">
-
-                    Bags
-
-                </div>
-
-                <div class="category">
-
-                    Accessories
-
-                </div>
-
-            </div>
-
-
-            <!-- Products -->
-
-            <div class="productList">
-
-                <div class="product active">
-
-                    <img src="assets/shirt1.png"
-                         alt="White Shirt">
-
-                    <div>
-
-                        <h4>
-
-                            White Oxford
-
-                        </h4>
-
-                        <p>
-
-                            Formal Shirt
-
-                        </p>
-
-                        <span>
-
-                            â‚¹1,999
-
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-
-                <div class="product">
-
-                    <img src="assets/shirt2.png"
-                         alt="Black Shirt">
-
-                    <div>
-
-                        <h4>
-
-                            Black Classic
-
-                        </h4>
-
-                        <p>
-
-                            Slim Fit
-
-                        </p>
-
-                        <span>
-
-                            â‚¹1,899
-
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-
-                <div class="product">
-
-                    <img src="assets/shirt3.png"
-                         alt="Denim Shirt">
-
-                    <div>
-
-                        <h4>
-
-                            Denim Blue
-
-                        </h4>
-
-                        <p>
-
-                            Casual Wear
-
-                        </p>
-
-                        <span>
-
-                            â‚¹2,199
-
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-
-                <div class="product">
-
-                    <img src="assets/shirt4.png"
-                         alt="Polo Shirt">
-
-                    <div>
-
-                        <h4>
-
-                            Polo Premium
-
-                        </h4>
-
-                        <p>
-
-                            Classic Polo
-
-                        </p>
-
-                        <span>
-
-                            â‚¹1,699
-
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-
-                <div class="product">
-
-                    <img src="assets/shirt5.png"
-                         alt="Oversized Tee">
-
-                    <div>
-
-                        <h4>
-
-                            Oversized Tee
-
-                        </h4>
-
-                        <p>
-
-                            Street Wear
-
-                        </p>
-
-                        <span>
-
-                            â‚¹1,499
-
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-
-                <div class="product">
-
-                    <img src="assets/shirt6.png"
-                         alt="Grey Hoodie">
-
-                    <div>
-
-                        <h4>
-
-                            Grey Hoodie
-
-                        </h4>
-
-                        <p>
-
-                            Winter Wear
-
-                        </p>
-
-                        <span>
-
-                            â‚¹2,499
-
-                        </span>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <!-- AI Panel -->
-
-            <div class="aiPanel glass">
-
-                <h3>
-
-                    AI Stylist
-
-                </h3>
-
-                <div class="metric">
-
-                    <span>
-
-                        Fit Score
-
-                    </span>
-
-                    <strong>
-
-                        96%
-
-                    </strong>
-
-                </div>
-
-                <div class="metric">
-
-                    <span>
-
-                        Lighting
-
-                    </span>
-
-                    <strong>
-
-                        Perfect
-
-                    </strong>
-
-                </div>
-
-                <div class="metric">
-
-                    <span>
-
-                        Weather
-
-                    </span>
-
-                    <strong>
-
-                        27Â°C
-
-                    </strong>
-
-                </div>
-
-                <div class="metric">
-
-                    <span>
-
-                        Occasion
-
-                    </span>
-
-                    <strong>
-
-                        College
-
-                    </strong>
-
-                </div>
-
-                <div class="recommendation">
-
-                    <h4>
-
-                        AI Recommendation
-
-                    </h4>
-
-                    <p>
-
-                        Pair this shirt with beige chinos and white sneakers for a clean, modern look.
-
-                    </p>
-
-                </div>
-
-            </div>
-
-        </aside>
-        <!--=========================
-             SMART MIRROR
-        ==========================-->
-
-        <section class="mirrorArea">
-
-            <!-- Header -->
-
-            <div class="mirrorHeader">
-
-                <h2>
-
-                    Smart Mirror
-
-                </h2>
-
-                <div class="mirrorControls">
-
-                    <button class="controlBtn">
-
-                        <i class="ri-camera-line"></i>
-
-                        Camera
-
-                    </button>
-
-                    <button class="controlBtn">
-
-                        <i class="ri-refresh-line"></i>
-
-                        Reset
-
-                    </button>
-
-                </div>
-
-            </div>
-
-
-            <!-- Mirror -->
-
-            <div class="mirrorFrame glass">
-
-                <!-- Live Status -->
-
-                <div class="liveStatus">
-
-                    <div class="liveDot"></div>
-
-                    LIVE
-
-                </div>
-
-
-                <!-- AI Status -->
-
-                <div class="aiStatus">
-
-                    <i class="ri-cpu-line"></i>
-
-                    AI Detecting...
-
-                </div>
-
-
-                <!-- Camera -->
-
-                <video id="camera"
-
-                    autoplay
-
-                    muted
-
-                    playsinline>
-
-                </video>
-
-
-                <!-- Placeholder -->
-
-                <div class="cameraPlaceholder">
-
-                    <i class="ri-camera-line"></i>
-
-                    <p>
-
-                        Camera Preview
-
-                    </p>
-
-                </div>
-
-
-                <!-- Shirt Overlay -->
-
-                <img id="shirtOverlay"
-
-                    src="assets/shirt1.png"
-
-                    alt="Selected Shirt">
-
-
-                <!-- Face Guide -->
-
-                <div class="faceGuide"></div>
-
-
-                <!-- Body Guide -->
-
-                <div class="bodyGuide"></div>
-
-
-                <!-- Detection Box -->
-
-                <div class="detectBox"></div>
-
-
-                <!-- Scanner Corners -->
-
-                <div class="corner topLeft"></div>
-
-                <div class="corner topRight"></div>
-
-                <div class="corner bottomLeft"></div>
-
-                <div class="corner bottomRight"></div>
-
-
-                <!-- Tracking Points -->
-
-                <div class="trackingDot"
-
-                    style="top:24%; left:50%;">
-
-                </div>
-
-                <div class="trackingDot"
-
-                    style="top:42%; left:47%;">
-
-                </div>
-
-                <div class="trackingDot"
-
-                    style="top:58%; left:53%;">
-
-                </div>
-
-                <div class="trackingDot"
-
-                    style="top:74%; left:50%;">
-
-                </div>
-
-
-                <!-- Scan Line -->
-
-                <div class="scanLine"></div>
-
-
-                <!-- Bottom Status -->
-
-                <div class="statusBar">
-
-                    <div class="statusItem">
-
-                        <h3>
-
-                            96%
-
-                        </h3>
-
-                        <p>
-
-                            Fit Score
-
-                        </p>
-
-                    </div>
-
-                    <div class="statusItem">
-
-                        <h3>
-
-                            30 FPS
-
-                        </h3>
-
-                        <p>
-
-                            Tracking
-
-                        </p>
-
-                    </div>
-
-                    <div class="statusItem">
-
-                        <h3>
-
-                            Ready
-
-                        </h3>
-
-                        <p>
-
-                            AI Status
-
-                        </p>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </section>
-
+    <a class="topbar-cta" href="#mirror">Try the mirror <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main class="page-shell">
+    <section class="intro-row" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow"><span class="eyebrow-line"></span> THE DIGITAL FITTING ROOM</p>
+        <h1 id="page-title">Your style, <em>in a new light.</em></h1>
+        <p class="intro-copy">Explore the collection, step in front of the mirror, and make the look your own.</p>
+      </div>
+      <div class="intro-note">
+        <span class="intro-note-icon" aria-hidden="true">✳</span>
+        <span><strong>A little more you.</strong><small>Choose a piece to begin your preview.</small></span>
+      </div>
     </section>
-    <!--=========================
-            FOOTER
-    ==========================-->
 
-    <footer>
+    <section class="workspace-grid" aria-label="StyleSync fitting room">
+      <aside class="catalog-panel panel" id="products" aria-labelledby="wardrobe-title">
+        <div class="catalog-heading">
+          <div>
+            <p class="section-kicker">01 / YOUR COLLECTION</p>
+            <h2 id="wardrobe-title">The wardrobe</h2>
+          </div>
+          <span class="item-count" id="itemCount">06 pieces</span>
+        </div>
 
-        <h2>
+        <label class="search-box" for="productSearch">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4.5 4.5"></path></svg>
+          <input id="productSearch" type="search" placeholder="Search the collection" autocomplete="off">
+          <kbd>/</kbd>
+        </label>
 
-            StyleSync
+        <div class="category-tabs" id="categoryTabs" role="group" aria-label="Filter by category">
+          <button class="category-tab is-active" type="button" data-category="all" aria-pressed="true">All</button>
+          <button class="category-tab" type="button" data-category="shirts" aria-pressed="false">Shirts</button>
+          <button class="category-tab" type="button" data-category="polos" aria-pressed="false">Polos</button>
+          <button class="category-tab" type="button" data-category="tees" aria-pressed="false">Tees</button>
+          <button class="category-tab" type="button" data-category="hoodies" aria-pressed="false">Hoodies</button>
+        </div>
 
-        </h2>
+        <div class="product-grid" id="productGrid" aria-live="polite"></div>
+        <p class="empty-state" id="emptyState" hidden>No pieces match that search. Try another name.</p>
 
-        <p>
+        <section class="stylist-note" aria-labelledby="stylistTitle">
+          <div class="stylist-note-icon" aria-hidden="true">✧</div>
+          <div class="stylist-note-content">
+            <div class="note-heading-row">
+              <h3 id="stylistTitle">A stylist's note</h3>
+              <span class="note-label">STYLE TIP</span>
+            </div>
+            <p id="recommendationText">Start with the White Oxford. Keep it easy with beige chinos and clean white sneakers.</p>
+          </div>
+        </section>
+      </aside>
 
-            AI Powered Smart Virtual Trial Room
+      <section class="mirror-column" id="mirror" aria-labelledby="mirrorTitle">
+        <div class="mirror-toolbar">
+          <div class="mirror-title-wrap">
+            <p class="section-kicker">02 / THE FITTING SPACE</p>
+            <h2 id="mirrorTitle">Smart mirror</h2>
+          </div>
+          <div class="mirror-actions">
+            <button class="action-button action-primary" id="cameraButton" type="button" aria-pressed="false">
+              <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h3l1.5-2h7l1.5 2h3A1.5 1.5 0 0 1 21.5 9v9a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 18V9A1.5 1.5 0 0 1 4 7.5Z"></path><circle cx="12" cy="13.5" r="3.5"></circle></svg>
+              <span id="cameraButtonText">Start camera</span>
+            </button>
+            <button class="action-button action-quiet" id="resetButton" type="button" title="Reset preview">
+              <svg class="button-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11a8.5 8.5 0 1 1 2.1 5.7"></path><path d="M3.5 4.5V11h6.5"></path></svg>
+              <span>Reset</span>
+            </button>
+            <button class="icon-button" id="snapshotButton" type="button" title="Save a snapshot" aria-label="Save a snapshot">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h3l1.5-2h7l1.5 2h3A1.5 1.5 0 0 1 21.5 9v9a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 18V9A1.5 1.5 0 0 1 4 7.5Z"></path><circle cx="12" cy="13.5" r="3.5"></circle></svg>
+            </button>
+          </div>
+        </div>
 
-        </p>
+        <div class="mirror-frame" id="mirrorFrame">
+          <video id="camera" autoplay muted playsinline aria-label="Live camera preview"></video>
+          <div class="mirror-wash" aria-hidden="true"></div>
 
-        <small>
+          <div class="stage-topline">
+            <span class="camera-state" id="cameraState"><i class="state-dot"></i><span id="cameraStateText">CAMERA OFF</span></span>
+            <span class="preview-state" id="previewState">GARMENT PREVIEW</span>
+          </div>
 
-            Â© 2026 StyleSync. All Rights Reserved.
+          <div class="idle-guide" id="idleGuide">
+            <div class="guide-orbit orbit-one"></div>
+            <div class="guide-orbit orbit-two"></div>
+            <div class="guide-person" aria-hidden="true">
+              <svg viewBox="0 0 260 470" role="presentation">
+                <circle cx="130" cy="54" r="34"></circle>
+                <path d="M91 105 Q130 88 169 105 L190 132 Q205 157 202 187 L190 275 L185 435 Q130 452 75 435 L70 275 L58 187 Q55 157 70 132Z"></path>
+                <path d="M66 139 20 272 M194 139 240 272 M92 430 83 466 M168 430 177 466"></path>
+              </svg>
+            </div>
+            <div class="idle-copy">
+              <span class="idle-sparkle" aria-hidden="true">✳</span>
+              <strong>Your mirror is ready</strong>
+              <span>Start the camera to preview your selected piece.</span>
+            </div>
+          </div>
 
-        </small>
+          <div class="body-guide" aria-hidden="true"></div>
+          <img id="shirtOverlay" src="assets/shirts/shirt1.svg" alt="White Oxford garment preview" draggable="false">
 
-    </footer>
+          <div class="stage-caption" id="stageCaption">
+            <span class="caption-swatch" id="captionSwatch"></span>
+            <span><strong id="selectedName">White Oxford</strong><small id="selectedDescription">Classic cotton · Regular fit</small></span>
+            <span class="caption-price" id="selectedPrice">₹1,999</span>
+          </div>
 
+          <div class="stage-bottomline">
+            <span><i class="tiny-dot"></i><span id="stageMessage">Camera is off · Previewing selected garment</span></span>
+            <span id="overlayState">Overlay on</span>
+          </div>
+        </div>
 
-    <!-- JavaScript -->
+        <div class="fit-controls panel" aria-label="Preview adjustments">
+          <div class="fit-control-heading">
+            <div><p class="section-kicker">03 / MAKE IT YOURS</p><strong>Preview adjustments</strong></div>
+            <button class="text-button" id="overlayToggle" type="button" aria-pressed="true">Hide garment</button>
+          </div>
+          <label class="range-control" for="garmentSize">
+            <span>Garment size <output id="sizeValue" for="garmentSize">34%</output></span>
+            <input id="garmentSize" type="range" min="22" max="48" value="34" step="1">
+          </label>
+          <label class="range-control" for="garmentPosition">
+            <span>Vertical position <output id="positionValue" for="garmentPosition">22%</output></span>
+            <input id="garmentPosition" type="range" min="12" max="34" value="22" step="1">
+          </label>
+          <button class="flip-control" id="flipButton" type="button" aria-pressed="true" title="Flip the mirror horizontally">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M5 7l-3 5 3 5M19 7l3 5-3 5"></path></svg>
+            <span>Mirror view</span>
+          </button>
+        </div>
+        <p class="demo-disclaimer">Preview mode: the garment can be positioned manually. Live body tracking and automatic size detection are not connected in this demo.</p>
+      </section>
+    </section>
 
-    <script src="camera-controls.js"></script>
+    <section class="how-section" id="how-it-works" aria-labelledby="howTitle">
+      <div class="how-heading">
+        <p class="section-kicker">A SIMPLER WAY TO EXPLORE</p>
+        <h2 id="howTitle">A fitting room, <em>reimagined.</em></h2>
+      </div>
+      <div class="steps-grid">
+        <article class="step-card"><span class="step-number">01</span><div class="step-icon" aria-hidden="true">⌕</div><h3>Choose your piece</h3><p>Browse the wardrobe and select the look you want to explore.</p></article>
+        <article class="step-card"><span class="step-number">02</span><div class="step-icon" aria-hidden="true">◉</div><h3>Enter the mirror</h3><p>Enable your camera to bring your live reflection into the fitting space.</p></article>
+        <article class="step-card"><span class="step-number">03</span><div class="step-icon" aria-hidden="true">✧</div><h3>Make it yours</h3><p>Adjust the garment overlay, compare styles, and save a preview snapshot.</p></article>
+      </div>
+    </section>
 
+    <section class="about-strip" id="about">
+      <div class="about-mark" aria-hidden="true">SS</div>
+      <div><p class="section-kicker">ABOUT STYLESYNC</p><h2>Thoughtful style meets a smarter store experience.</h2></div>
+      <p>StyleSync is a college project prototype exploring how an interactive digital wardrobe can make in-store discovery more engaging.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer" id="footer">
+    <a class="footer-brand" href="#home">StyleSync<span>®</span></a>
+    <p>Designed to make trying something new feel effortless.</p>
+    <span>© 2026 StyleSync · Interactive prototype</span>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
-
 </html>
